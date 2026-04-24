@@ -338,23 +338,58 @@ function wrapNarration(text: string) {
   return cleaned ? `*${cleaned}*` : ''
 }
 
+function removeLeadingMetaEcho(line: string) {
+  const firstKorean = line.search(/[가-힣]/)
+  if (firstKorean <= 0) return line
+
+  const prefix = line.slice(0, firstKorean)
+  if (!/[a-z]/i.test(prefix)) return line
+  if (!/(user|character|setting|format|dialogue|action|meta|label|asterisk|address|keep|short|immersive|tone|nickname)/i.test(prefix)) {
+    return line
+  }
+
+  return line.slice(firstKorean).trim()
+}
+
+function isMetaOnlyLine(line: string) {
+  const metaPrefix =
+    /^(User says|Character(?: Traits)?|User Nickname|Tone|Format|The user's|The user|Given|Setting|Reasoning|Analysis|Plan|Response|Output|Hyun-ji|Park Hyun-ji|Adult creative chatbot\?|Character traits maintained\?|Format followed\?|No parentheses\?|No meta|No labels|Use asterisks|Use \*|Address the user|Keep it short|Keep the reply|A simple)/i
+
+  if (metaPrefix.test(line)) return true
+  if (/^(Yes|No)\.?$/i.test(line)) return true
+  if (/^(No meta-explanation|No labels like|Use asterisks for|Address the user as|Keep it short and immersive)\.?$/i.test(line)) return true
+
+  const koreanCount = (line.match(/[가-힣]/g) || []).length
+  const latinCount = (line.match(/[a-z]/gi) || []).length
+  if (koreanCount === 0 && latinCount > 0) return true
+  return koreanCount > 0 && latinCount > koreanCount && /\b(you're|you are|planning|dialogue|action|format|character|setting|tone|meta|labels|asterisks)\b/i.test(line)
+}
+
+function repairNarrationStars(line: string) {
+  if (!line.endsWith('*') || line.startsWith('*')) return line
+  return wrapNarration(line.replace(/\*+$/g, ''))
+}
+
 function stripModelReasoning(raw: string) {
   const labeledParts: string[] = []
   const cleanLines: string[] = []
-  const metaPrefix =
-    /^(User says|Character(?: Traits)?|Format|The user's|Given|Setting|Reasoning|Analysis|Plan|Response|Output|Hyun-ji|Park Hyun-ji|Adult creative chatbot\?|Character traits maintained\?|Format followed\?|No parentheses\?)/i
+  const taggedReply = raw.match(/<reply>([\s\S]*?)<\/reply>/i)?.[1]
+  const sourceText = taggedReply || raw
 
-  raw
+  sourceText
     .replace(/\r\n/g, '\n')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<analysis>[\s\S]*?<\/analysis>/gi, '')
+    .replace(/<\/?reply>/gi, '')
     .replace(/```[\s\S]*?```/g, '')
     .split('\n')
     .map((line) => line.trim())
     .forEach((originalLine) => {
-      const line = originalLine
+      const line = repairNarrationStars(removeLeadingMetaEcho(originalLine)
         .replace(/^(Adult creative chatbot\?|Character traits maintained\?|Format followed\?|No parentheses\?)\s*(Yes|No)\.?\s*/i, '')
-        .trim()
+        .trim())
 
-      if (!line || /^(Yes|No)\.?$/i.test(line)) return
+      if (!line || isMetaOnlyLine(line)) return
 
       const action = line.match(/^(Action|Emotion|Narration|Description)\s*:\s*(.+)$/i)
       if (action) {
@@ -370,7 +405,6 @@ function stripModelReasoning(raw: string) {
         return
       }
 
-      if (metaPrefix.test(line)) return
       cleanLines.push(line)
     })
 
@@ -443,6 +477,7 @@ function buildSystemPrompt(character: Character, castMembers: CastMember[], nick
     '당신은 한국어로 자연스럽게 대화하는 성인용 창작 챗봇입니다.',
     '절대 사고 과정, 분석, 계획, 체크리스트, 영어 메타 설명을 출력하지 마세요.',
     'User says, Character, Character Traits, Format, Setting, Action:, Dialogue:, Yes/No 같은 라벨을 출력하지 마세요.',
+    '최종 답변은 <reply>와 </reply> 사이에만 작성하세요. 태그 밖에는 아무 문장도 쓰지 마세요.',
     '최종 답변만 출력하세요. 상황/감정 묘사는 *별표 안*에 쓰고, 대사는 별표 밖에 쓰세요.',
     `사용자 닉네임: ${userName}`,
     `사용자를 Guest나 게스트라고 부르지 말고 반드시 "${userName}" 또는 자연스러운 2인칭으로 부르세요.`,
@@ -648,8 +683,8 @@ function geminiContents(messages: ChatMessage[]) {
 }
 
 function geminiText(data: unknown) {
-  const typed = data as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> }
-  return typed.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('').trim() || ''
+  const typed = data as { candidates?: Array<{ content?: { parts?: Array<{ text?: string; thought?: boolean }> } }> }
+  return typed.candidates?.[0]?.content?.parts?.filter((part) => !part.thought).map((part) => part.text || '').join('').trim() || ''
 }
 
 function openAiText(data: unknown) {
