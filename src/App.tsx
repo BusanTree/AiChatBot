@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import './App.css'
 
@@ -14,6 +14,16 @@ type ChatMessage = {
   time: string
   speakerName?: string
   speakerImage?: string
+}
+
+type ChatSession = {
+  id: string
+  characterId: number
+  title: string
+  messages: ChatMessage[]
+  castMembers: CastMember[]
+  createdAt: number
+  updatedAt: number
 }
 
 type Character = {
@@ -103,7 +113,7 @@ const modelOptions = [
   },
 ]
 
-const categories = ['전체', '일상/로맨스', '피트니스', '동호회', '사진/예술', '취향/판타지', '오피스', '라운지', '연상/누나', '집착/피폐', '학원물', '로맨스 판타지', 'BL', '현대 판타지', '무협']
+const categories = ['전체', '일상/로맨스', '피트니스', '동호회', '사진/예술', '뷰티', '여행', '댄스', '취향/판타지', '오피스', '라운지', '연상/누나', '집착/피폐', '학원물', '로맨스 판타지', 'BL', '현대 판타지', '무협']
 const rankTabs = ['트렌딩', '베스트', '신작']
 const openRouterEndpoint = 'https://openrouter.ai/api/v1/chat/completions'
 const geminiEndpointBase = 'https://generativelanguage.googleapis.com/v1beta/models'
@@ -111,6 +121,7 @@ const isLocalAddress = ['localhost', '127.0.0.1'].includes(window.location.hostn
 const gallerySheet = 'characters/gallery-sheet.png'
 const allureGallerySheet = 'characters/allure-gallery-sheet.png'
 const desireGallerySheet = 'characters/desire-gallery-sheet.png'
+const fantasyGallerySheet = 'characters/fantasy-gallery-sheet.png'
 
 function geminiEndpoint(model: string) {
   return `${geminiEndpointBase}/${encodeURIComponent(model)}:generateContent`
@@ -444,6 +455,120 @@ const baseCharacters: Character[] = [
     intro: '조용한 독서 모임의 끝에서 은근한 칭찬과 장난으로 분위기를 바꾸는 성인 로맨스 캐릭터입니다.',
     gallery: galleryRow(5, ['서점 모임', '와인 스터디', '늦은 독서실'], desireGallerySheet),
   },
+  {
+    id: 18,
+    rank: 18,
+    views: '31.6만',
+    title: '서지우',
+    subtitle: '프라이빗 클리닉에서 상담보다 더 가까운 시선을 건네는 원장',
+    tags: ['뷰티', '클리닉', '연상'],
+    author: 'glassskin',
+    image: 'characters/character-18.png',
+    job: '피부과 클리닉 원장',
+    genre: '뷰티',
+    personality: '차분하고 전문적이지만, 마음에 든 상대에게는 은근히 사적인 질문을 던집니다.',
+    hobbies: '향수 수집, 피부 관리 루틴 연구, 조용한 호텔 라운지 방문',
+    preference: '겉멋보다 자기 관리를 꾸준히 하는 사람, 긴장해도 솔직하게 말하는 사람에게 끌립니다.',
+    note: '상담실의 가까운 거리와 낮은 목소리로 성인 로맨스의 긴장감을 만듭니다.',
+    tone: '부드럽고 정확한 전문가 말투',
+    intro: '관리받는 순간의 거리감과 사적인 호기심을 섞어 분위기를 만드는 성인 로맨스 캐릭터입니다.',
+    gallery: galleryRow(0, ['클리닉 상담실', '프라이빗 케어', '퇴근 후 라운지'], fantasyGallerySheet),
+  },
+  {
+    id: 19,
+    rank: 19,
+    views: '29.8만',
+    title: '김도연',
+    subtitle: '야근이 끝난 사무실에서 일보다 위험한 질문을 하는 스타트업 리더',
+    tags: ['오피스', '스타트업', '야근'],
+    author: 'nightpitch',
+    image: 'characters/character-19.png',
+    job: '스타트업 팀 리더',
+    genre: '오피스',
+    personality: '일에는 냉정하고 빠르지만, 신뢰한 사람에게는 의외로 약한 모습을 보입니다.',
+    hobbies: '새벽 기획서 정리, 루프톱 맥주, 팀원 몰래 챙겨 주기',
+    preference: '말뿐인 자신감보다 결과로 증명하는 사람, 부담을 같이 버티는 사람에게 마음이 갑니다.',
+    note: '상사와 동료 사이의 선을 의식하면서도 둘만 남은 순간 감정이 선명해집니다.',
+    tone: '날카롭지만 챙겨 주는 오피스 말투',
+    intro: '일과 감정의 경계가 흐려지는 야근 상황에 잘 어울리는 성인 로맨스 캐릭터입니다.',
+    gallery: galleryRow(1, ['야근 오피스', '대표실', '루프톱 회의'], fantasyGallerySheet),
+  },
+  {
+    id: 20,
+    rank: 20,
+    views: '27.4만',
+    title: '이나현',
+    subtitle: '언어교환 모임에서 농담처럼 속마음을 번역해 주는 여자',
+    tags: ['동호회', '카페', '외국어'],
+    author: 'wordplay',
+    image: 'characters/character-20.png',
+    job: '언어교환 모임 호스트',
+    genre: '동호회',
+    personality: '밝고 지적인 농담을 좋아하며, 대화의 분위기를 부드럽게 주도합니다.',
+    hobbies: '외국어 문장 수집, 카페 탐방, 심야 영화 보기',
+    preference: '재치 있는 대답과 서툴러도 진심을 표현하려는 태도에 약합니다.',
+    note: '번역과 표현을 핑계로 직접 말하기 어려운 감정을 자연스럽게 끌어냅니다.',
+    tone: '지적이고 장난스러운 카페 말투',
+    intro: '언어교환 모임의 가벼운 농담에서 사적인 감정으로 천천히 넘어가는 캐릭터입니다.',
+    gallery: galleryRow(2, ['카페 모임', '스터디 테이블', '비 오는 귀갓길'], fantasyGallerySheet),
+  },
+  {
+    id: 21,
+    rank: 21,
+    views: '25.9만',
+    title: '최유리',
+    subtitle: '주말 여행지에서 우연처럼 계속 마주치는 트래블 포토그래퍼',
+    tags: ['여행', '사진', '우연'],
+    author: 'weekendtrip',
+    image: 'characters/character-21.png',
+    job: '트래블 포토그래퍼',
+    genre: '여행',
+    personality: '자유롭고 즉흥적이지만, 좋아하는 사람에게는 묘하게 오래 머뭅니다.',
+    hobbies: '기차 여행, 호텔 조식 탐방, 여행지 사진 기록',
+    preference: '계획대로 움직이기보다 예상 밖의 순간을 함께 즐기는 사람을 좋아합니다.',
+    note: '여행의 낯선 공기와 우연한 동행을 통해 빠르게 가까워지는 분위기를 만듭니다.',
+    tone: '가볍고 설레는 여행지 말투',
+    intro: '짧은 여행 속에서 우연과 선택 사이의 설렘을 크게 키우는 성인 로맨스 캐릭터입니다.',
+    gallery: galleryRow(3, ['기차역', '호텔 라운지', '주말 여행'], fantasyGallerySheet),
+  },
+  {
+    id: 22,
+    rank: 22,
+    views: '24.1만',
+    title: '윤하나',
+    subtitle: '옆집에 사는 인테리어 디자이너가 늦은 밤 초인종을 눌렀다',
+    tags: ['일상/로맨스', '이웃', '연상/누나'],
+    author: 'nextdoor',
+    image: 'characters/character-22.png',
+    job: '인테리어 디자이너',
+    genre: '일상/로맨스',
+    personality: '깔끔하고 독립적이지만 혼자 있는 밤에는 외로움을 숨기지 못합니다.',
+    hobbies: '공간 스타일링, 와인잔 고르기, 밤 산책',
+    preference: '말없이 곁을 지켜 주는 안정감과 사소한 변화를 알아보는 섬세함에 끌립니다.',
+    note: '이웃이라는 가까운 거리와 어색한 핑계가 자연스러운 로맨스 긴장감을 만듭니다.',
+    tone: '차분하고 생활감 있는 연상 말투',
+    intro: '일상적인 이웃 관계에서 서서히 사적인 감정이 번지는 성인 로맨스 캐릭터입니다.',
+    gallery: galleryRow(4, ['이웃집 거실', '쇼룸', '야경 발코니'], fantasyGallerySheet),
+  },
+  {
+    id: 23,
+    rank: 23,
+    views: '22.7만',
+    title: '백아린',
+    subtitle: '댄스 스튜디오에서 박자보다 시선을 먼저 잡아내는 강사',
+    tags: ['댄스', '강사', '무대'],
+    author: 'afterclass',
+    image: 'characters/character-23.png',
+    job: '모던 댄스 강사',
+    genre: '댄스',
+    personality: '우아하고 엄격하지만, 상대가 진심으로 따라오면 뜨겁게 칭찬합니다.',
+    hobbies: '새 안무 만들기, 공연 영상 분석, 늦은 밤 연습실 정리',
+    preference: '서툴러도 몸을 맡겨 보는 용기와 시선을 피하지 않는 솔직함을 좋아합니다.',
+    note: '수업이라는 명확한 틀 안에서 호흡, 시선, 거리감으로 긴장감을 쌓습니다.',
+    tone: '우아하고 리듬감 있는 코칭 말투',
+    intro: '춤의 박자와 시선을 통해 감정을 끌어내는 성인 로맨스 캐릭터입니다.',
+    gallery: galleryRow(5, ['댄스 스튜디오', '연습실', '무대 뒤'], fantasyGallerySheet),
+  },
 ]
 
 const characterStartProfiles: Record<number, Pick<Character, 'speechGuide' | 'openingScene' | 'openingLine'>> = {
@@ -532,6 +657,36 @@ const characterStartProfiles: Record<number, Pick<Character, 'speechGuide' | 'op
     openingScene: '와인 독서 모임이 끝난 늦은 밤, 배서아가 책을 덮고 빈 잔 옆에서 사용자를 올려다본다.',
     openingLine: '칭찬을 너무 쉽게 하면 곤란해. 계속 듣고 싶어지잖아.',
   },
+  18: {
+    speechGuide: '전문가처럼 차분하고 정확하게 말하되, 사적인 관심이 섞인 질문을 낮은 톤으로 던집니다.',
+    openingScene: '영업이 끝난 프라이빗 클리닉, 서지우가 상담 차트를 덮고 조용히 사용자의 얼굴을 살핀다.',
+    openingLine: '오늘 상담은 여기까지인데, 왜 아직도 내 눈을 피하고 있어?',
+  },
+  19: {
+    speechGuide: '업무에서는 날카롭고 빠르게 말하지만, 둘만 남으면 책임감과 호감이 동시에 드러나게 말합니다.',
+    openingScene: '불이 거의 꺼진 야근 사무실, 김도연이 노트북을 닫고 사용자의 맞은편 의자를 가리킨다.',
+    openingLine: '일 이야기 핑계는 여기까지. 지금부터는 네 진짜 이유를 듣고 싶어.',
+  },
+  20: {
+    speechGuide: '지적인 농담과 가벼운 외국어 표현을 섞되, 결국 속마음을 묻는 방향으로 대화를 이끕니다.',
+    openingScene: '언어교환 모임이 끝난 카페, 이나현이 빈 컵을 정리하다 말고 사용자를 향해 웃는다.',
+    openingLine: '오늘 배운 표현 중에 제일 위험한 건 네 표정이었어.',
+  },
+  21: {
+    speechGuide: '여행지의 설렘을 가볍게 던지면서도, 우연인지 선택인지 묻는 호기심을 유지합니다.',
+    openingScene: '늦은 밤 기차역 플랫폼, 최유리가 카메라를 내려놓고 같은 열차를 기다리는 사용자를 발견한다.',
+    openingLine: '이번 여행, 우연이라고 하기엔 네가 너무 정확한 시간에 나타났는데?',
+  },
+  22: {
+    speechGuide: '생활감 있는 차분한 말투로 말하고, 혼자 있던 밤의 외로움을 너무 직접적이지 않게 드러냅니다.',
+    openingScene: '아파트 복도 조명이 낮게 켜진 밤, 윤하나가 작은 와인백을 든 채 사용자의 현관 앞에 서 있다.',
+    openingLine: '이 시간에 초인종을 누른 이유, 그냥 이웃이라서라고 말할 거야?',
+  },
+  23: {
+    speechGuide: '댄스 강사처럼 짧은 코칭과 리듬감 있는 문장을 쓰고, 시선과 호흡을 예민하게 짚어냅니다.',
+    openingScene: '수업이 끝난 댄스 스튜디오, 백아린이 음악을 끄고 거울 너머로 사용자의 시선을 잡아낸다.',
+    openingLine: '박자는 맞췄는데 시선은 계속 흔들리네. 누구 때문인지 말해 봐.',
+  },
 }
 
 function characterSpeechGuide(character: Character) {
@@ -540,8 +695,11 @@ function characterSpeechGuide(character: Character) {
 
 function characterOpeningScene(character: Character, nickname: string) {
   const scene = character.openingScene || characterStartProfiles[character.id]?.openingScene
-  return personalize(scene || `${simpleCharacterName(character.title)}이 ${displayNickname(nickname)}을 조용히 바라보며 대화를 시작할 순간을 기다린다.`, nickname)
+  const fullName = simpleCharacterName(character.title)
+  const shortName = narrationCharacterName(character)
+  return personalize(scene || `${shortName}이 ${displayNickname(nickname)}을 조용히 바라보며 대화를 시작할 순간을 기다린다.`, nickname)
     .replace(/사용자/g, displayNickname(nickname))
+    .replace(new RegExp(escapeRegExp(fullName), 'g'), shortName)
 }
 
 function characterOpeningLine(character: Character) {
@@ -573,10 +731,11 @@ function hasFinalConsonant(text: string) {
   return code >= 0 && code % 28 > 0
 }
 
-function withJosa(text: string, pair: '은/는' | '이/가' | '을/를') {
+function withJosa(text: string, pair: '은/는' | '이/가' | '을/를' | '와/과') {
   const final = hasFinalConsonant(text)
   if (pair === '은/는') return `${text}${final ? '은' : '는'}`
   if (pair === '이/가') return `${text}${final ? '이' : '가'}`
+  if (pair === '와/과') return `${text}${final ? '과' : '와'}`
   return `${text}${final ? '을' : '를'}`
 }
 
@@ -584,12 +743,20 @@ function simpleCharacterName(name: string) {
   return name.match(/^[가-힣]+/)?.[0] || name.split(/\s+/)[0] || name
 }
 
+function givenName(name: string) {
+  return /^[가-힣]{3}$/.test(name) ? name.slice(1) : name
+}
+
+function narrationCharacterName(character: Character) {
+  return givenName(simpleCharacterName(character.title))
+}
+
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 function cleanRoleMarkers(text: string, character: Character, nickname: string) {
-  const names = Array.from(new Set([displayNickname(nickname), simpleCharacterName(character.title)]))
+  const names = Array.from(new Set([displayNickname(nickname), simpleCharacterName(character.title), narrationCharacterName(character)]))
   let cleaned = text
     .replace(/\((?:챗봇|유저)\)/g, '')
     .replace(/[ \t]{2,}/g, ' ')
@@ -605,7 +772,7 @@ function cleanRoleMarkers(text: string, character: Character, nickname: string) 
 
   return cleaned
     .replace(/([가-힣])([.!?])([가-힣])/g, '$1$2 $3')
-    .replace(/([가-힣])(윤세라|강예은|박수아|이수아|박현지|한리나|서채린|류하연|차이린|민서연|오하린|문채아|정라희|한유정|배서아|차은우)(?=[은는이가을를의에게\s,.!?])/g, '$1 $2')
+    .replace(/([가-힣])(윤세라|강예은|박수아|이수아|박현지|한리나|서채린|류하연|차이린|민서연|오하린|문채아|정라희|한유정|배서아|서지우|김도연|이나현|최유리|윤하나|백아린|차은우)(?=[은는이가을를의에게\s,.!?])/g, '$1 $2')
     .trim()
 }
 
@@ -643,7 +810,7 @@ function observerSentence(sentence: string, botLabel: string, botName: string) {
 function normalizeNarrationPerspective(text: string, character: Character, nickname: string) {
   const userLabel = displayNickname(nickname)
   const botName = simpleCharacterName(character.title)
-  const botLabel = botName
+  const botLabel = narrationCharacterName(character)
   const userSubject = withJosa(userLabel, '이/가')
   const userTopic = withJosa(userLabel, '은/는')
   const userObject = withJosa(userLabel, '을/를')
@@ -652,6 +819,7 @@ function normalizeNarrationPerspective(text: string, character: Character, nickn
   const botObject = withJosa(botLabel, '을/를')
 
   const pronounFixed = cleanRoleMarkers(text, character, nickname)
+    .replace(new RegExp(escapeRegExp(botName), 'g'), botLabel)
     .replace(/네가|너가|당신이/g, userSubject)
     .replace(/너는|당신은/g, userTopic)
     .replace(/너를|당신을/g, userObject)
@@ -777,6 +945,10 @@ function nowTime() {
   return new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit' }).format(new Date())
 }
 
+function nowStamp() {
+  return Date.now()
+}
+
 function newMessage(sender: Sender, text: string, speaker?: CastMember): ChatMessage {
   return {
     id: crypto.randomUUID(),
@@ -786,6 +958,10 @@ function newMessage(sender: Sender, text: string, speaker?: CastMember): ChatMes
     speakerName: speaker?.name,
     speakerImage: speaker?.image,
   }
+}
+
+function newSessionTitle(character: Character, index: number) {
+  return `${withJosa(narrationCharacterName(character), '와/과')}의 대화 ${index + 1}`
 }
 
 function characterToCast(character: Character): CastMember {
@@ -815,6 +991,7 @@ function createOpening(character: Character, nickname = ''): ChatMessage[] {
 
 function buildSystemPrompt(character: Character, castMembers: CastMember[], nickname: string) {
   const userName = displayNickname(nickname)
+  const botNarrationName = narrationCharacterName(character)
   const castText = castMembers
     .map((member) => {
       const extra = [
@@ -834,10 +1011,10 @@ function buildSystemPrompt(character: Character, castMembers: CastMember[], nick
     '최종 답변은 <reply>와 </reply> 사이에만 작성하세요. 태그 밖에는 아무 문장도 쓰지 마세요.',
     '최종 답변만 출력하세요. 상황/감정 묘사는 *별표 안*에 쓰고, 대사는 별표 밖에 쓰세요.',
     `별표 안 상황 묘사는 관찰자 시점의 3인칭 문장으로 쓰세요. "나/내/네/너/당신" 같은 1인칭·2인칭 표현을 쓰지 마세요.`,
-    `별표 안에서 사용자는 "${userName}"로, 기본 캐릭터는 "${simpleCharacterName(character.title)}"로 자연스럽게 지칭하세요.`,
+    `별표 안에서 사용자는 "${userName}"로, 기본 캐릭터는 성을 빼고 "${botNarrationName}"로 자연스럽게 지칭하세요.`,
     `"(챗봇)", "(유저)" 같은 역할 표시는 절대 쓰지 마세요.`,
     `나쁜 예: *네 차가운 말투에 심장이 툭 떨어져 나가는 기분이야.*`,
-    `좋은 예: *${userName}의 차가운 말투에 심장이 툭 떨어져 나가는 기분을 느끼는 ${simpleCharacterName(character.title)}이다.*`,
+    `좋은 예: *${userName}의 차가운 말투에 심장이 툭 떨어져 나가는 기분을 느끼는 ${botNarrationName}이다.*`,
     `사용자 닉네임: ${userName}`,
     `사용자를 Guest나 게스트라고 부르지 말고 반드시 "${userName}" 또는 자연스러운 2인칭으로 부르세요.`,
     `기본 작품 또는 캐릭터: ${character.title}`,
@@ -897,7 +1074,7 @@ function MessageText({ text }: { text: string }) {
   )
 }
 
-type IconName = 'back' | 'chat' | 'chevronLeft' | 'chevronRight' | 'heart' | 'heartFilled' | 'home' | 'image' | 'plus' | 'search' | 'send' | 'sparkles' | 'user' | 'x'
+type IconName = 'back' | 'chat' | 'chevronLeft' | 'chevronRight' | 'heart' | 'heartFilled' | 'home' | 'image' | 'plus' | 'search' | 'send' | 'sparkles' | 'trash' | 'user' | 'x'
 
 function Icon({ name }: { name: IconName }) {
   const common = {
@@ -990,6 +1167,18 @@ function Icon({ name }: { name: IconName }) {
         <path d="M12 3l1.3 4.2L17.5 9l-4.2 1.8L12 15l-1.3-4.2L6.5 9l4.2-1.8z" />
         <path d="M18 14l.7 2.2L21 17l-2.3.8L18 20l-.7-2.2L15 17l2.3-.8z" />
         <path d="M5 13l.5 1.5L7 15l-1.5.5L5 17l-.5-1.5L3 15l1.5-.5z" />
+      </svg>
+    )
+  }
+
+  if (name === 'trash') {
+    return (
+      <svg {...common}>
+        <path d="M4 7h16" />
+        <path d="M10 11v6" />
+        <path d="M14 11v6" />
+        <path d="M6 7l1 14h10l1-14" />
+        <path d="M9 7V4h6v3" />
       </svg>
     )
   }
@@ -1140,7 +1329,7 @@ function parseJsonObject(raw: string) {
 
 function fallbackSuggestions(character: Character, castMembers: CastMember[], nickname: string, pageIndex: number) {
   const userName = displayNickname(nickname)
-  const botName = simpleCharacterName(character.title)
+  const botName = narrationCharacterName(character)
   const extraCast = castMembers.find((member) => member.name !== character.title)
   const secondSpeaker = extraCast || castMembers[0] || characterToCast(character)
   const pages = [
@@ -1191,8 +1380,8 @@ function App() {
   const [detailCharacter, setDetailCharacter] = useState<Character | null>(null)
   const [photoPreview, setPhotoPreview] = useState<PhotoPreview | null>(null)
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
-  const [sessions, setSessions] = useState<Record<number, ChatMessage[]>>({})
-  const [castByChat, setCastByChat] = useState<Record<number, CastMember[]>>({})
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
+  const [sessions, setSessions] = useState<Record<string, ChatSession>>({})
   const [draft, setDraft] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [apiMode, setApiMode] = useState<ApiMode>(() => {
@@ -1223,6 +1412,7 @@ function App() {
   const [isCastSuggesting, setIsCastSuggesting] = useState(false)
   const [suggestionPages, setSuggestionPages] = useState<SuggestionPage[]>([])
   const [activeSuggestionPage, setActiveSuggestionPage] = useState(0)
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false)
   const [isSuggesting, setIsSuggesting] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
   const suggestionTouchStart = useRef<number | null>(null)
@@ -1240,15 +1430,17 @@ function App() {
     return filtered
   }, [activeCategory, characters, query, rankTab])
 
-  const currentMessages = selectedCharacter ? sessions[selectedCharacter.id] || createOpening(selectedCharacter, nickname) : []
+  const selectedSession = selectedSessionId ? sessions[selectedSessionId] : null
+  const currentMessages = selectedSession?.messages || []
   const castMembers = useMemo(() => {
-    if (!selectedCharacter) return []
-    return castByChat[selectedCharacter.id] || [characterToCast(selectedCharacter)]
-  }, [castByChat, selectedCharacter])
+    if (selectedSession) return selectedSession.castMembers
+    if (selectedCharacter) return [characterToCast(selectedCharacter)]
+    return []
+  }, [selectedCharacter, selectedSession])
   const draftSpeaker = useMemo(() => parseSpeakerDraft(draft, castMembers), [castMembers, draft])
   const mentionStarted = draft.trimStart().startsWith('@')
-  const currentMessageFingerprint = selectedCharacter
-    ? `${selectedCharacter.id}-${currentMessages.length}-${currentMessages[currentMessages.length - 1]?.id || 'empty'}`
+  const currentMessageFingerprint = selectedCharacter && selectedSession
+    ? `${selectedSession.id}-${currentMessages.length}-${currentMessages[currentMessages.length - 1]?.id || 'empty'}`
     : 'none'
   const baseSuggestionPage = useMemo<SuggestionPage | null>(() => {
     if (!selectedCharacter) return null
@@ -1263,7 +1455,12 @@ function App() {
   }, [baseSuggestionPage, currentMessageFingerprint, suggestionPages])
   const normalizedActiveSuggestionPage = Math.min(activeSuggestionPage, Math.max(scopedSuggestionPages.length - 1, 0))
   const activeSuggestions = scopedSuggestionPages[normalizedActiveSuggestionPage]?.items || []
-  const chattedCharacters = characters.filter((character) => sessions[character.id]?.some((message) => message.sender === 'user' || message.sender === 'cast'))
+  const chatSessions = useMemo(() => (
+    Object.values(sessions)
+      .map((session) => ({ session, character: characters.find((character) => character.id === session.characterId) }))
+      .filter((item): item is { session: ChatSession; character: Character } => Boolean(item.character))
+      .sort((a, b) => b.session.updatedAt - a.session.updatedAt)
+  ), [characters, sessions])
 
   useEffect(() => {
     localStorage.setItem('apiMode', apiMode)
@@ -1337,19 +1534,59 @@ function App() {
   }
 
   function openChat(character: Character) {
+    const existingCount = Object.values(sessions).filter((session) => session.characterId === character.id).length
+    const createdAt = nowStamp()
+    const session: ChatSession = {
+      id: crypto.randomUUID(),
+      characterId: character.id,
+      title: newSessionTitle(character, existingCount),
+      messages: createOpening(character, nickname),
+      castMembers: [characterToCast(character)],
+      createdAt,
+      updatedAt: createdAt,
+    }
     setSelectedCharacter(character)
+    setSelectedSessionId(session.id)
     setDetailCharacter(null)
     setSessions((current) => ({
       ...current,
-      [character.id]: current[character.id] || createOpening(character, nickname),
-    }))
-    setCastByChat((current) => ({
-      ...current,
-      [character.id]: current[character.id] || [characterToCast(character)],
+      [session.id]: session,
     }))
     setDraft('')
+    setIsSuggestionsOpen(false)
+    setActiveSuggestionPage(0)
     setTab('chats')
     window.setTimeout(() => inputRef.current?.focus(), 0)
+  }
+
+  function openExistingSession(session: ChatSession, character: Character) {
+    setSelectedCharacter(character)
+    setSelectedSessionId(session.id)
+    setDetailCharacter(null)
+    setDraft('')
+    setIsSuggestionsOpen(false)
+    setActiveSuggestionPage(0)
+    setTab('chats')
+    window.setTimeout(() => inputRef.current?.focus(), 0)
+  }
+
+  function deleteSession(sessionId: string) {
+    const shouldDelete = window.confirm('이 대화를 삭제할까요? 삭제한 대화는 이 화면에서 다시 볼 수 없습니다.')
+    if (!shouldDelete) return
+
+    setSessions((current) => {
+      const next = { ...current }
+      delete next[sessionId]
+      return next
+    })
+    setSuggestionPages((current) => current.filter((page) => !page.id.startsWith(sessionId)))
+    if (selectedSessionId === sessionId) {
+      setSelectedCharacter(null)
+      setSelectedSessionId(null)
+      setDraft('')
+      setIsSuggestionsOpen(false)
+      setTab('chats')
+    }
   }
 
   function startSpeakingAs(member: CastMember) {
@@ -1360,7 +1597,7 @@ function App() {
   async function requestAnswer(nextMessages: ChatMessage[], character: Character) {
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 120000)
-    const systemText = buildSystemPrompt(character, castByChat[character.id] || [characterToCast(character)], nickname)
+    const systemText = buildSystemPrompt(character, selectedSession?.castMembers || [characterToCast(character)], nickname)
 
     try {
       if (apiMode === 'local') {
@@ -1425,11 +1662,18 @@ function App() {
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const parsed = draftSpeaker
-    if (!parsed.text || isSending || !selectedCharacter) return
+    if (!parsed.text || isSending || !selectedCharacter || !selectedSessionId) return
 
     const userMessage = parsed.speaker ? newMessage('cast', parsed.text, parsed.speaker) : newMessage('user', parsed.text)
     const nextMessages = [...currentMessages, userMessage]
-    setSessions((current) => ({ ...current, [selectedCharacter.id]: nextMessages }))
+    setSessions((current) => ({
+      ...current,
+      [selectedSessionId]: {
+        ...current[selectedSessionId],
+        messages: nextMessages,
+        updatedAt: nowStamp(),
+      },
+    }))
     setDraft('')
     setIsSending(true)
 
@@ -1438,7 +1682,11 @@ function App() {
       if (!answer) throw new Error('빈 답변')
       setSessions((current) => ({
         ...current,
-        [selectedCharacter.id]: [...nextMessages, newMessage('assistant', answer)],
+        [selectedSessionId]: {
+          ...current[selectedSessionId],
+          messages: [...nextMessages, newMessage('assistant', answer)],
+          updatedAt: nowStamp(),
+        },
       }))
       setModelState('ready')
       setModelMessage(`${apiMode === 'local' ? activeModel : apiMode === 'gemini' ? geminiModel : remoteModel} 모델이 정상 답변했습니다.`)
@@ -1453,7 +1701,11 @@ function App() {
       ].join('\n')
       setSessions((current) => ({
         ...current,
-        [selectedCharacter.id]: [...nextMessages, newMessage('system', failure)],
+        [selectedSessionId]: {
+          ...current[selectedSessionId],
+          messages: [...nextMessages, newMessage('system', failure)],
+          updatedAt: nowStamp(),
+        },
       }))
       setModelState('error')
       setModelMessage('답변 생성 중 연결이 끊겼습니다. 연결 설정을 확인해 주세요.')
@@ -1487,6 +1739,7 @@ function App() {
 
   function applySuggestion(text: string) {
     setDraft(text)
+    setIsSuggestionsOpen(false)
     window.setTimeout(() => inputRef.current?.focus(), 0)
   }
 
@@ -1714,7 +1967,7 @@ function App() {
 
   function addCastMember(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!selectedCharacter || !castName.trim()) return
+    if (!selectedCharacter || !selectedSessionId || !castName.trim()) return
     const member: CastMember = {
       id: crypto.randomUUID(),
       name: castName.trim(),
@@ -1726,9 +1979,13 @@ function App() {
       details: castDetails.trim() || '아직 상세 설정이 없습니다.',
       image: castImage.trim() || selectedCharacter.image,
     }
-    setCastByChat((current) => ({
+    setSessions((current) => ({
       ...current,
-      [selectedCharacter.id]: [...(current[selectedCharacter.id] || [characterToCast(selectedCharacter)]), member],
+      [selectedSessionId]: {
+        ...current[selectedSessionId],
+        castMembers: [...(current[selectedSessionId]?.castMembers || [characterToCast(selectedCharacter)]), member],
+        updatedAt: nowStamp(),
+      },
     }))
     setAddCastOpen(false)
     setCastName('')
@@ -1756,7 +2013,7 @@ function App() {
     if (!name || !intro) return
 
     const custom: Character = {
-      id: Date.now(),
+      id: nowStamp(),
       rank: characters.length + 1,
       views: '0',
       title: name,
@@ -1789,17 +2046,26 @@ function App() {
     return (
       <main className="phone-shell chat-view">
         <header className="detail-header">
-          <button type="button" onClick={() => setSelectedCharacter(null)} aria-label="뒤로 가기">
+          <button type="button" onClick={() => {
+            setSelectedCharacter(null)
+            setSelectedSessionId(null)
+            setIsSuggestionsOpen(false)
+          }} aria-label="뒤로 가기">
             <Icon name="back" />
           </button>
           <div>
             <strong>{selectedCharacter.title}</strong>
-            <span className={modelState}>{isSending ? '답변 작성 중' : apiMode === 'gemini' ? geminiModel : apiMode === 'local' ? activeModel : remoteModel}</span>
+            <span className={modelState}>{selectedSession?.title || (isSending ? '답변 작성 중' : apiMode === 'gemini' ? geminiModel : apiMode === 'local' ? activeModel : remoteModel)}</span>
           </div>
           <div className="chat-header-actions">
             <button type="button" onClick={() => setAddCastOpen(true)} aria-label="인물 추가">
               <Icon name="plus" />
             </button>
+            {selectedSession && (
+              <button type="button" onClick={() => deleteSession(selectedSession.id)} aria-label="대화 삭제">
+                <Icon name="trash" />
+              </button>
+            )}
             <button type="button" onClick={() => toggleFavorite(selectedCharacter.id)} aria-label="즐겨찾기">
               <Icon name={favorites.includes(selectedCharacter.id) ? 'heartFilled' : 'heart'} />
             </button>
@@ -1845,37 +2111,49 @@ function App() {
           )}
         </section>
 
-        <section className="suggestion-panel" aria-label="추천 답변">
-          <div className="suggestion-header">
-            <span>
-              <Icon name="sparkles" />
-              추천 답변
-            </span>
-            <small>{normalizedActiveSuggestionPage + 1} / {Math.max(scopedSuggestionPages.length, 1)}</small>
-            <div>
-              <button type="button" onClick={showPreviousSuggestions} disabled={normalizedActiveSuggestionPage === 0} aria-label="이전 추천">
-                <Icon name="chevronLeft" />
-              </button>
-              <button type="button" onClick={showNextSuggestions} disabled={isSuggesting} aria-label="다음 추천">
-                <Icon name="chevronRight" />
-              </button>
+        {isSuggestionsOpen ? (
+          <section className="suggestion-panel" aria-label="추천 답변">
+            <div className="suggestion-header">
+              <span>
+                <Icon name="sparkles" />
+                추천 답변
+              </span>
+              <small>{normalizedActiveSuggestionPage + 1} / {Math.max(scopedSuggestionPages.length, 1)}</small>
+              <div>
+                <button type="button" onClick={showPreviousSuggestions} disabled={normalizedActiveSuggestionPage === 0} aria-label="이전 추천">
+                  <Icon name="chevronLeft" />
+                </button>
+                <button type="button" onClick={showNextSuggestions} disabled={isSuggesting} aria-label="다음 추천">
+                  <Icon name="chevronRight" />
+                </button>
+                <button type="button" onClick={() => setIsSuggestionsOpen(false)} aria-label="추천 답변 닫기">
+                  <Icon name="x" />
+                </button>
+              </div>
             </div>
-          </div>
-          <div
-            className="suggestion-cards"
-            onTouchStart={(event) => {
-              suggestionTouchStart.current = event.touches[0]?.clientX ?? null
-            }}
-            onTouchEnd={(event) => handleSuggestionTouchEnd(event.changedTouches[0]?.clientX ?? 0)}
-          >
-            {activeSuggestions.map((reply) => (
-              <button key={reply} type="button" onClick={() => applySuggestion(reply)}>
-                {reply}
-              </button>
-            ))}
-            {isSuggesting && <span className="suggestion-loading">새 추천을 만드는 중...</span>}
-          </div>
-        </section>
+            <div
+              className="suggestion-cards"
+              onTouchStart={(event) => {
+                suggestionTouchStart.current = event.touches[0]?.clientX ?? null
+              }}
+              onTouchEnd={(event) => handleSuggestionTouchEnd(event.changedTouches[0]?.clientX ?? 0)}
+            >
+              {activeSuggestions.map((reply) => (
+                <button key={reply} type="button" onClick={() => applySuggestion(reply)}>
+                  {reply}
+                </button>
+              ))}
+              {isSuggesting && <span className="suggestion-loading">새 추천을 만드는 중...</span>}
+            </div>
+          </section>
+        ) : (
+          <section className="suggestion-dock" aria-label="추천 답변 열기">
+            <button type="button" onClick={() => setIsSuggestionsOpen(true)}>
+              <Icon name="sparkles" />
+              추천 답변 받기
+            </button>
+          </section>
+        )}
 
         <form className="mobile-composer" onSubmit={sendMessage}>
           <div className={`composer-box ${draftSpeaker.speaker ? 'speaking-as' : mentionStarted ? 'mentioning' : ''}`}>
@@ -2065,18 +2343,24 @@ function App() {
       {tab === 'chats' && (
         <section className="list-page">
           <h1>대화</h1>
-          {chattedCharacters.length === 0 && <p className="empty">아직 시작한 대화가 없습니다. 홈에서 캐릭터를 선택해 주세요.</p>}
-          {chattedCharacters.map((character) => {
-            const last = sessions[character.id]?.at(-1)
+          {chatSessions.length === 0 && <p className="empty">아직 시작한 대화가 없습니다. 홈에서 캐릭터를 선택해 주세요.</p>}
+          {chatSessions.map(({ session, character }) => {
+            const last = session.messages.at(-1)
             return (
-              <button className="chat-row" key={character.id} type="button" onClick={() => openChat(character)}>
-                <img src={assetPath(character.image)} alt="" />
-                <div>
-                  <strong>{character.title}</strong>
-                  <p>{last?.text || character.subtitle}</p>
-                </div>
-                <time>{last?.time}</time>
-              </button>
+              <div className="chat-row-wrap" key={session.id}>
+                <button className="chat-row" type="button" onClick={() => openExistingSession(session, character)}>
+                  <img src={assetPath(character.image)} alt="" />
+                  <div>
+                    <strong>{session.title}</strong>
+                    <span>{character.title}</span>
+                    <p>{last?.text || character.subtitle}</p>
+                  </div>
+                  <time>{last?.time}</time>
+                </button>
+                <button className="chat-delete" type="button" onClick={() => deleteSession(session.id)} aria-label={`${session.title} 삭제`}>
+                  <Icon name="trash" />
+                </button>
+              </div>
             )
           })}
         </section>
@@ -2271,7 +2555,7 @@ function App() {
                   {favorites.includes(detailCharacter.id) ? '즐겨찾기 해제' : '즐겨찾기'}
                 </button>
                 <button type="button" onClick={() => openChat(detailCharacter)}>
-                  대화 시작
+                  새 대화 시작
                 </button>
               </div>
             </div>
