@@ -536,12 +536,26 @@ img {
   background: linear-gradient(135deg, #20212b, #15151a 68%);
 }
 
-.detail-hero img {
+.detail-hero-photo {
   width: 82px;
   height: 108px;
+  padding: 0;
+  overflow: hidden;
   border-radius: 14px;
+  background: transparent;
+  color: inherit;
+}
+
+.detail-hero-photo img {
+  width: 82px;
+  height: 108px;
   object-fit: cover;
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+  transition: transform 0.22s ease;
+}
+
+.detail-hero-photo:hover img {
+  transform: scale(1.04);
 }
 
 .detail-hero span {
@@ -656,11 +670,14 @@ img {
 .gallery-thumb {
   position: relative;
   min-height: 76px;
+  padding: 0;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
+  background-color: #1b1c23;
   background-repeat: no-repeat;
   background-size: 300% 600%;
+  text-align: left;
 }
 
 .gallery-thumb::after {
@@ -679,6 +696,66 @@ img {
   color: #fff;
   font-size: 11px;
   font-weight: 900;
+}
+
+.photo-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+}
+
+.photo-viewer-content {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 10px;
+  width: min(100%, 430px);
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  background: #14151b;
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.62);
+}
+
+.photo-viewer-content img,
+.photo-viewer-crop {
+  width: 100%;
+  border-radius: 16px;
+  background-color: #0f1014;
+}
+
+.photo-viewer-content img {
+  height: min(68svh, 590px);
+  object-fit: cover;
+}
+
+.photo-viewer-crop {
+  aspect-ratio: 1;
+  background-repeat: no-repeat;
+  background-size: 300% 600%;
+}
+
+.photo-viewer-content strong {
+  padding: 0 4px 2px;
+  color: #f2f3f8;
+  font-size: 14px;
+}
+
+.photo-viewer-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 3;
+  display: inline-grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
 }
 
 .sheet-actions {

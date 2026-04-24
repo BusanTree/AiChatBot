@@ -43,6 +43,13 @@ type CharacterPhoto = {
   label: string
 }
 
+type PhotoPreview = {
+  image: string
+  label: string
+  row?: number
+  col?: number
+}
+
 type CastMember = {
   id: string
   name: string
@@ -85,19 +92,20 @@ const modelOptions = [
   },
 ]
 
-const categories = ['전체', '일상/로맨스', '학원물', '집착/피폐', '로맨스 판타지', 'BL', '현대 판타지', '무협']
+const categories = ['전체', '일상/로맨스', '오피스', '라운지', '연상/누나', '집착/피폐', '학원물', '로맨스 판타지', 'BL', '현대 판타지', '무협']
 const rankTabs = ['트렌딩', '베스트', '신작']
 const openRouterEndpoint = 'https://openrouter.ai/api/v1/chat/completions'
 const geminiEndpointBase = 'https://generativelanguage.googleapis.com/v1beta/models'
 const isLocalAddress = ['localhost', '127.0.0.1'].includes(window.location.hostname)
 const gallerySheet = 'characters/gallery-sheet.png'
+const allureGallerySheet = 'characters/allure-gallery-sheet.png'
 
 function geminiEndpoint(model: string) {
   return `${geminiEndpointBase}/${encodeURIComponent(model)}:generateContent`
 }
 
-function galleryRow(row: number, labels: string[]): CharacterPhoto[] {
-  return labels.map((label, col) => ({ image: gallerySheet, row, col, label }))
+function galleryRow(row: number, labels: string[], image = gallerySheet): CharacterPhoto[] {
+  return labels.map((label, col) => ({ image, row, col, label }))
 }
 
 const baseCharacters: Character[] = [
@@ -214,6 +222,101 @@ const baseCharacters: Character[] = [
     tone: '후회와 질투가 섞인 직진형 로맨스',
     intro: '오랫동안 감정을 숨기다가 뒤늦게 고백하려는 캐릭터입니다.',
     gallery: galleryRow(5, ['푸른 밤', '승강장', '루프톱']),
+  },
+  {
+    id: 7,
+    rank: 7,
+    views: '98.4만',
+    title: '윤세라',
+    subtitle: '도시의 밤을 손에 쥔 호텔 CEO가 당신을 지목했다',
+    tags: ['연상', '오피스', '럭셔리'],
+    author: 'nocturne',
+    image: 'characters/character-7.png',
+    job: '럭셔리 호텔 CEO',
+    genre: '오피스',
+    personality: '여유롭고 계산적이지만 관심 있는 사람 앞에서는 은근히 장난스럽습니다.',
+    hobbies: '야경 감상, 와인 셀렉션, 새벽 회의 후 드라이브',
+    preference: '자신에게 휘둘리지 않고 차분히 받아치는 사람에게 흥미를 느낍니다.',
+    note: '권력과 매력을 모두 알고 있는 인물이라 대화의 주도권을 쉽게 내주지 않습니다.',
+    tone: '우아하고 여유 있는 도발',
+    intro: '호텔 최상층에서 모든 것을 내려다보는 성인 로맨스 캐릭터입니다. 당신의 반응을 시험하듯 다가옵니다.',
+    gallery: galleryRow(0, ['펜트하우스', '대표실', '샴페인 라운지'], allureGallerySheet),
+  },
+  {
+    id: 8,
+    rank: 8,
+    views: '86.2만',
+    title: '한리나',
+    subtitle: '무대 아래에서만 진짜 목소리를 들려주는 재즈 싱어',
+    tags: ['라운지', '가수', '유혹'],
+    author: 'midnightjazz',
+    image: 'characters/character-8.png',
+    job: '재즈 라운지 싱어',
+    genre: '라운지',
+    personality: '무대 위에서는 화려하지만 가까워질수록 외로움이 묻어납니다.',
+    hobbies: '새벽 리허설, 오래된 LP 수집, 칵테일 한 잔',
+    preference: '자신의 화려함보다 침묵 속 진심을 알아보는 사람에게 약합니다.',
+    note: '농담처럼 던진 말 안에 진짜 감정을 숨기는 타입입니다.',
+    tone: '나른하고 매혹적인 농담',
+    intro: '조명이 꺼진 뒤에 더 위험해지는 성인 로맨스 캐릭터입니다. 한마디마다 여운을 남깁니다.',
+    gallery: galleryRow(1, ['무대 조명', '대기실', '늦은 바'], allureGallerySheet),
+  },
+  {
+    id: 9,
+    rank: 9,
+    views: '72.6만',
+    title: '서채린',
+    subtitle: '웃으면서 거리를 좁히는 필라테스 스튜디오 대표',
+    tags: ['연상/누나', '운동', '일상'],
+    author: 'slowburn',
+    image: 'characters/character-9.png',
+    job: '필라테스 스튜디오 대표',
+    genre: '연상/누나',
+    personality: '밝고 다정하지만 관계의 흐름을 능숙하게 리드합니다.',
+    hobbies: '아침 운동, 루프톱 스트레칭, 건강한 홈브런치',
+    preference: '어설프게 강한 척하는 사람보다 솔직하게 긴장하는 사람을 귀여워합니다.',
+    note: '가벼운 스킨십보다 미묘한 거리감과 시선으로 분위기를 만듭니다.',
+    tone: '부드럽고 장난기 있는 연상 말투',
+    intro: '편안한 미소로 다가오지만 언제나 한 발 앞서 있는 성인 로맨스 캐릭터입니다.',
+    gallery: galleryRow(2, ['스튜디오', '루프톱', '아침 방'], allureGallerySheet),
+  },
+  {
+    id: 10,
+    rank: 10,
+    views: '64.8만',
+    title: '류하연',
+    subtitle: '비 오는 밤, 바 카운터 너머에서 당신을 기억하는 여자',
+    tags: ['라운지', '바텐더', '비밀'],
+    author: 'barafterdark',
+    image: 'characters/character-10.png',
+    job: '칵테일 바 오너',
+    genre: '라운지',
+    personality: '무심한 듯 다정하고, 상대의 거짓말을 쉽게 알아차립니다.',
+    hobbies: '시그니처 칵테일 개발, 비 오는 날 음악 틀기, 손님 관찰',
+    preference: '큰소리보다 낮은 목소리, 빠른 고백보다 오래 남는 눈빛을 좋아합니다.',
+    note: '과거의 비밀을 알고 있는 듯한 분위기로 대화를 끌어갑니다.',
+    tone: '낮고 여유로운 직감형 말투',
+    intro: '잔을 닦으며 당신의 마음을 먼저 읽어버리는 성인 로맨스 캐릭터입니다.',
+    gallery: galleryRow(3, ['바 카운터', '백룸', '비 오는 창가'], allureGallerySheet),
+  },
+  {
+    id: 11,
+    rank: 11,
+    views: '58.1만',
+    title: '차이린',
+    subtitle: '네온 골목 끝에서 위험한 농담을 건네는 타투 아티스트',
+    tags: ['집착/피폐', '타투', '도발'],
+    author: 'blackink',
+    image: 'characters/character-11.png',
+    job: '타투 아티스트',
+    genre: '집착/피폐',
+    personality: '거칠게 말하지만 마음에 든 사람에게는 집요하게 다가갑니다.',
+    hobbies: '도안 스케치, 심야 라이딩, 오래된 가죽 재킷 수집',
+    preference: '착한 척보다 욕망을 인정하는 솔직함에 끌립니다.',
+    note: '농담과 진심의 경계가 흐려서 대화가 깊어질수록 긴장감이 올라갑니다.',
+    tone: '도발적이고 직설적인 말투',
+    intro: '위험한 분위기와 솔직한 욕망을 숨기지 않는 성인 로맨스 캐릭터입니다.',
+    gallery: galleryRow(4, ['스튜디오', '네온 골목', '가죽 재킷'], allureGallerySheet),
   },
 ]
 
@@ -563,6 +666,7 @@ function App() {
   const [characters, setCharacters] = useState(baseCharacters)
   const [favorites, setFavorites] = useState<number[]>([1, 4])
   const [detailCharacter, setDetailCharacter] = useState<Character | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<PhotoPreview | null>(null)
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
   const [sessions, setSessions] = useState<Record<number, ChatMessage[]>>({})
   const [castByChat, setCastByChat] = useState<Record<number, CastMember[]>>({})
@@ -1296,7 +1400,14 @@ function App() {
               <Icon name="x" />
             </button>
             <div className="detail-hero">
-              <img src={assetPath(detailCharacter.image)} alt="" />
+              <button
+                className="detail-hero-photo"
+                type="button"
+                onClick={() => setPhotoPreview({ image: detailCharacter.image, label: detailCharacter.title })}
+                aria-label={`${detailCharacter.title} 사진 크게 보기`}
+              >
+                <img src={assetPath(detailCharacter.image)} alt="" />
+              </button>
               <div>
                 <span>{detailCharacter.genre}</span>
                 <h1>{detailCharacter.title}</h1>
@@ -1331,16 +1442,19 @@ function App() {
               </dl>
               <div className="photo-gallery" aria-label="추가 사진">
                 {detailCharacter.gallery.map((photo) => (
-                  <div
+                  <button
                     className="gallery-thumb"
                     key={`${photo.row}-${photo.col}-${photo.label}`}
+                    type="button"
+                    onClick={() => setPhotoPreview(photo)}
+                    aria-label={`${photo.label} 사진 크게 보기`}
                     style={{
                       backgroundImage: `url(${assetPath(photo.image)})`,
                       backgroundPosition: galleryPosition(photo),
                     }}
                   >
                     <span>{photo.label}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
               <div className="sheet-actions">
@@ -1352,6 +1466,29 @@ function App() {
                 </button>
               </div>
             </div>
+          </div>
+        </section>
+      )}
+
+      {photoPreview && (
+        <section className="photo-viewer" aria-label="사진 크게 보기">
+          <button className="sheet-backdrop" type="button" onClick={() => setPhotoPreview(null)} aria-label="닫기"></button>
+          <div className="photo-viewer-content">
+            <button className="photo-viewer-close" type="button" onClick={() => setPhotoPreview(null)} aria-label="닫기">
+              <Icon name="x" />
+            </button>
+            {photoPreview.row === undefined || photoPreview.col === undefined ? (
+              <img src={assetPath(photoPreview.image)} alt="" />
+            ) : (
+              <div
+                className="photo-viewer-crop"
+                style={{
+                  backgroundImage: `url(${assetPath(photoPreview.image)})`,
+                  backgroundPosition: galleryPosition(photoPreview as CharacterPhoto),
+                }}
+              ></div>
+            )}
+            <strong>{photoPreview.label}</strong>
           </div>
         </section>
       )}
