@@ -25,9 +25,22 @@ type Character = {
   tags: string[]
   author: string
   image: string
+  job: string
   genre: string
+  personality: string
+  hobbies: string
+  preference: string
+  note: string
   tone: string
   intro: string
+  gallery: CharacterPhoto[]
+}
+
+type CharacterPhoto = {
+  image: string
+  row: number
+  col: number
+  label: string
 }
 
 type CastMember = {
@@ -77,9 +90,14 @@ const rankTabs = ['트렌딩', '베스트', '신작']
 const openRouterEndpoint = 'https://openrouter.ai/api/v1/chat/completions'
 const geminiEndpointBase = 'https://generativelanguage.googleapis.com/v1beta/models'
 const isLocalAddress = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+const gallerySheet = 'characters/gallery-sheet.png'
 
 function geminiEndpoint(model: string) {
   return `${geminiEndpointBase}/${encodeURIComponent(model)}:generateContent`
+}
+
+function galleryRow(row: number, labels: string[]): CharacterPhoto[] {
+  return labels.map((label, col) => ({ image: gallerySheet, row, col, label }))
 }
 
 const baseCharacters: Character[] = [
@@ -92,9 +110,15 @@ const baseCharacters: Character[] = [
     tags: ['순애', '시대극', '비밀'],
     author: 'dell1945',
     image: 'characters/character-1.png',
+    job: '독립운동 연락책',
     genre: '일상/로맨스',
+    personality: '차갑게 선을 긋지만 한번 믿은 사람은 끝까지 지키는 타입',
+    hobbies: '밤거리 산책, 오래된 책갈피 수집, 암호 편지 정리',
+    preference: '과장된 말보다 조용히 곁에 있어 주는 태도에 약합니다.',
+    note: '가면과 본명을 따로 쓰는 이중생활 때문에 쉽게 마음을 열지 않습니다.',
     tone: '차갑지만 오래 지켜본 듯한 애정',
     intro: '차가운 말투 뒤에 깊은 감정을 숨기는 인물입니다. 사용자를 밀어내면서도 끝내 놓지 못합니다.',
+    gallery: galleryRow(0, ['비 오는 거리', '서재의 밤', '카페 창가']),
   },
   {
     id: 2,
@@ -105,9 +129,15 @@ const baseCharacters: Character[] = [
     tags: ['현대극', '비밀', '선생님'],
     author: 'VitaLinen4189',
     image: 'characters/character-2.png',
+    job: '고등학교 교사',
     genre: '일상/로맨스',
+    personality: '단정하고 책임감이 강하지만 감정이 깊어지면 조심스럽게 흔들립니다.',
+    hobbies: '퇴근 후 음악 듣기, 수업 노트 정리, 조용한 카페 찾기',
+    preference: '가볍게 떠보는 말보다 솔직하고 차분한 대화를 좋아합니다.',
+    note: '겉으로는 침착하지만 금지된 감정 앞에서는 오래 고민하는 인물입니다.',
     tone: '단정하고 침착하지만 흔들리는 감정',
     intro: '겉으로는 차분하지만 대화가 깊어질수록 솔직한 마음을 감추지 못하는 캐릭터입니다.',
+    gallery: galleryRow(1, ['교실 복도', '교무실', '저녁 방']),
   },
   {
     id: 3,
@@ -118,9 +148,15 @@ const baseCharacters: Character[] = [
     tags: ['이별통보', '연인', '감정'],
     author: 'haro01',
     image: 'characters/character-3.png',
+    job: '감정 에피소드 주인공',
     genre: '집착/피폐',
+    personality: '상처받으면 먼저 밀어내지만 사실은 붙잡히길 바라는 성향',
+    hobbies: '새벽 카페 가기, 오래된 메시지 다시 읽기, 플레이리스트 만들기',
+    preference: '애매한 위로보다 확실한 선택과 진심 어린 사과를 원합니다.',
+    note: '이별을 말하지만 관계를 완전히 끝낼 준비는 되어 있지 않습니다.',
     tone: '상처받은 연인의 불안한 진심',
     intro: '헤어짐을 말하지만 사실은 붙잡히고 싶은 인물입니다. 답변에 따라 감정선이 크게 달라집니다.',
+    gallery: galleryRow(2, ['니트 무드', '카페 테이블', '밤의 방']),
   },
   {
     id: 4,
@@ -131,9 +167,15 @@ const baseCharacters: Character[] = [
     tags: ['결혼', '외로움', '현대극'],
     author: 'Bigpicture',
     image: 'characters/character-4.png',
+    job: '프리랜서 플로리스트',
     genre: '일상/로맨스',
+    personality: '다정하지만 오랫동안 참은 서운함이 선명한 인물',
+    hobbies: '꽃 손질, 홈카페, 늦은 밤 산책',
+    preference: '말뿐인 약속보다 생활 속에서 확인되는 애정을 중요하게 봅니다.',
+    note: '외로움을 숨기다 지쳐 관계를 다시 정의하려는 시점입니다.',
     tone: '외로움과 솔직함 사이의 긴장감',
     intro: '오래 참아온 감정을 더 이상 숨기지 못하는 성인 로맨스 캐릭터입니다.',
+    gallery: galleryRow(3, ['거실 오후', '주방 조명', '정원 산책']),
   },
   {
     id: 5,
@@ -144,9 +186,15 @@ const baseCharacters: Character[] = [
     tags: ['결혼생활', '이혼위기', '재회'],
     author: 'lumon',
     image: 'characters/character-5.png',
+    job: '재벌가 후계자',
     genre: '일상/로맨스',
+    personality: '품격 있고 자존심이 강하지만 마음을 주면 쉽게 놓지 못합니다.',
+    hobbies: '와인 테이스팅, 미술관 관람, 새벽 드라이브',
+    preference: '자신을 동등하게 대하고 끝까지 책임지는 사람에게 끌립니다.',
+    note: '이혼을 말하는 순간에도 마지막 확인을 기다리고 있습니다.',
     tone: '품격 있고 날카로운 말투',
     intro: '자존심이 강하고 우아하지만, 관계를 완전히 끝낼지 다시 붙잡을지 흔들리는 캐릭터입니다.',
+    gallery: galleryRow(4, ['스위트룸', '디너 테이블', '호텔 라운지']),
   },
   {
     id: 6,
@@ -157,15 +205,35 @@ const baseCharacters: Character[] = [
     tags: ['짝사랑', '질투', '소꿉친구'],
     author: 'neon',
     image: 'characters/character-6.png',
+    job: '오랜 소꿉친구',
     genre: '학원물',
+    personality: '말은 퉁명스럽지만 질투와 후회가 앞서는 직진형',
+    hobbies: '야경 보기, 같이 걷기, 오래된 사진 정리',
+    preference: '돌려 말하는 것보다 지금의 감정을 분명히 듣고 싶어 합니다.',
+    note: '다른 사람에게 빼앗기기 전에 뒤늦게 고백하려는 분위기입니다.',
     tone: '후회와 질투가 섞인 직진형 로맨스',
     intro: '오랫동안 감정을 숨기다가 뒤늦게 고백하려는 캐릭터입니다.',
+    gallery: galleryRow(5, ['푸른 밤', '승강장', '루프톱']),
   },
 ]
 
 function assetPath(path: string) {
   if (path.startsWith('data:') || path.startsWith('http')) return path
   return `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
+}
+
+function displayNickname(nickname: string) {
+  return nickname.trim() || '당신'
+}
+
+function personalize(text: string, nickname: string) {
+  return text.replace(/Guest|게스트/g, displayNickname(nickname))
+}
+
+function galleryPosition(photo: CharacterPhoto) {
+  const x = photo.col === 0 ? 0 : photo.col === 1 ? 50 : 100
+  const y = photo.row === 0 ? 0 : photo.row === 5 ? 100 : photo.row * 20
+  return `${x}% ${y}%`
 }
 
 function nowTime() {
@@ -194,22 +262,30 @@ function characterToCast(character: Character): CastMember {
   }
 }
 
-function createOpening(character: Character): ChatMessage[] {
+function createOpening(character: Character, nickname = ''): ChatMessage[] {
   return [
-    newMessage('assistant', `${character.title}\n${character.intro}\n\n첫마디를 건네면 이 설정으로 바로 대화를 이어갈게요.`),
+    newMessage('assistant', `${character.title}\n${personalize(character.intro, nickname)}\n\n${displayNickname(nickname)}의 첫마디를 기다리고 있을게요.`),
     newMessage('system', '별표 사이에 쓰면 상황 묘사로 처리됩니다. 예: *수아가 잠깐 시선을 피한다* 괄호 대신 이 방식을 쓰면 더 자연스럽게 표시됩니다.'),
   ]
 }
 
-function buildSystemPrompt(character: Character, castMembers: CastMember[]) {
+function buildSystemPrompt(character: Character, castMembers: CastMember[], nickname: string) {
+  const userName = displayNickname(nickname)
   const castText = castMembers
     .map((member) => `- ${member.name}: ${member.job}. 성격: ${member.personality}. 설정: ${member.details}`)
     .join('\n')
 
   return [
     '당신은 한국어로 자연스럽게 대화하는 성인용 창작 챗봇입니다.',
+    `사용자 닉네임: ${userName}`,
+    `사용자를 Guest나 게스트라고 부르지 말고 반드시 "${userName}" 또는 자연스러운 2인칭으로 부르세요.`,
     `기본 작품 또는 캐릭터: ${character.title}`,
-    `기본 캐릭터 설명: ${character.intro}`,
+    `기본 캐릭터 설명: ${personalize(character.intro, nickname)}`,
+    `직업/역할: ${character.job}`,
+    `성격: ${character.personality}`,
+    `취미: ${character.hobbies}`,
+    `취향: ${character.preference}`,
+    `특이사항: ${character.note}`,
     `기본 말투: ${character.tone}`,
     '등장인물 목록:',
     castText,
@@ -437,6 +513,7 @@ function App() {
   const [remoteApiKey, setRemoteApiKey] = useState(() => localStorage.getItem('remoteApiKey') || '')
   const [geminiModel, setGeminiModel] = useState(() => localStorage.getItem('geminiModel') || 'gemma-4-31b-it')
   const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('geminiApiKey') || '')
+  const [nickname, setNickname] = useState(() => localStorage.getItem('nickname') || '')
   const [installedModels, setInstalledModels] = useState<string[]>([])
   const [modelState, setModelState] = useState<ModelState>('unknown')
   const [modelMessage, setModelMessage] = useState('모델 상태를 아직 확인하지 않았습니다.')
@@ -464,7 +541,7 @@ function App() {
     return filtered
   }, [activeCategory, characters, query, rankTab])
 
-  const currentMessages = selectedCharacter ? sessions[selectedCharacter.id] || createOpening(selectedCharacter) : []
+  const currentMessages = selectedCharacter ? sessions[selectedCharacter.id] || createOpening(selectedCharacter, nickname) : []
   const castMembers = selectedCharacter
     ? castByChat[selectedCharacter.id] || [characterToCast(selectedCharacter)]
     : []
@@ -476,7 +553,8 @@ function App() {
     localStorage.setItem('remoteApiKey', remoteApiKey)
     localStorage.setItem('geminiModel', geminiModel)
     localStorage.setItem('geminiApiKey', geminiApiKey)
-  }, [apiMode, geminiApiKey, geminiModel, remoteApiKey, remoteModel])
+    localStorage.setItem('nickname', nickname)
+  }, [apiMode, geminiApiKey, geminiModel, nickname, remoteApiKey, remoteModel])
 
   const checkModel = useCallback(async () => {
     setModelState('checking')
@@ -545,7 +623,7 @@ function App() {
     setDetailCharacter(null)
     setSessions((current) => ({
       ...current,
-      [character.id]: current[character.id] || createOpening(character),
+      [character.id]: current[character.id] || createOpening(character, nickname),
     }))
     setCastByChat((current) => ({
       ...current,
@@ -559,7 +637,7 @@ function App() {
   async function requestAnswer(nextMessages: ChatMessage[], character: Character) {
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 120000)
-    const systemText = buildSystemPrompt(character, castByChat[character.id] || [characterToCast(character)])
+    const systemText = buildSystemPrompt(character, castByChat[character.id] || [characterToCast(character)], nickname)
 
     try {
       if (apiMode === 'local') {
@@ -766,9 +844,15 @@ function App() {
       tags: ['커스텀', '로맨스', '성인'],
       author: 'me',
       image: `characters/character-${((characters.length % 6) + 1).toString()}.png`,
+      job: '사용자 제작 캐릭터',
       genre: '일상/로맨스',
+      personality: '사용자가 직접 적은 설정을 중심으로 반응합니다.',
+      hobbies: '대화 안에서 함께 정해갈 수 있습니다.',
+      preference: '사용자가 지정한 관계와 분위기를 우선합니다.',
+      note: '새로 만든 캐릭터라 대화가 쌓일수록 설정이 선명해집니다.',
       tone: '사용자가 직접 만든 캐릭터 톤',
       intro,
+      gallery: galleryRow(characters.length % 6, ['기본 컷', '다른 분위기', '추가 무드']),
     }
 
     setCharacters((current) => [custom, ...current])
@@ -802,7 +886,7 @@ function App() {
         <section className="profile-strip">
           <img src={assetPath(selectedCharacter.image)} alt="" />
           <div>
-            <p>{selectedCharacter.subtitle}</p>
+            <p>{personalize(selectedCharacter.subtitle, nickname)}</p>
             <small>@{selectedCharacter.author} · {selectedCharacter.tone}</small>
           </div>
         </section>
@@ -933,7 +1017,7 @@ function App() {
             <Icon name="search" />
           </button>
           <button className="login-button" type="button" onClick={() => setTab('my')}>
-            로그인
+            {nickname ? displayNickname(nickname) : '설정'}
           </button>
         </div>
       </header>
@@ -991,7 +1075,7 @@ function App() {
                 <div className="favorite-badge">{favorites.includes(character.id) ? '♥' : '♡'}</div>
                 <div className="card-copy">
                   <h2>{character.title}</h2>
-                  <p>{character.subtitle}</p>
+                  <p>{personalize(character.subtitle, nickname)}</p>
                   <span>#{character.tags.join(' #')}</span>
                   <small>@{character.author}</small>
                 </div>
@@ -1048,6 +1132,16 @@ function App() {
       {tab === 'my' && (
         <section className="my-page">
           <h1>마이페이지</h1>
+          <div className="profile-panel">
+            <div>
+              <h2>내 닉네임</h2>
+              <p>AI가 더 이상 Guest라고 부르지 않고 이 이름으로 불러요.</p>
+            </div>
+            <label>
+              닉네임
+              <input value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="예: 민준" />
+            </label>
+          </div>
           <div className="model-panel">
             <h2>연결 설정</h2>
             <p className={`model-message ${modelState}`}>{modelMessage}</p>
@@ -1133,15 +1227,57 @@ function App() {
       {detailCharacter && (
         <section className="detail-sheet" aria-label="캐릭터 상세">
           <button className="sheet-backdrop" type="button" onClick={() => setDetailCharacter(null)} aria-label="닫기"></button>
-          <div className="sheet-content">
-            <img src={assetPath(detailCharacter.image)} alt="" />
+          <div className="sheet-content character-detail-card">
             <button className="sheet-close" type="button" onClick={() => setDetailCharacter(null)}>
               <Icon name="x" />
             </button>
+            <div className="detail-hero">
+              <img src={assetPath(detailCharacter.image)} alt="" />
+              <div>
+                <span>{detailCharacter.genre}</span>
+                <h1>{detailCharacter.title}</h1>
+                <p>{personalize(detailCharacter.subtitle, nickname)}</p>
+              </div>
+            </div>
             <div className="sheet-copy">
-              <span>#{detailCharacter.tags.join(' #')}</span>
-              <h1>{detailCharacter.title}</h1>
-              <p>{detailCharacter.intro}</p>
+              <div className="tag-line">#{detailCharacter.tags.join(' #')}</div>
+              <p className="detail-intro">{personalize(detailCharacter.intro, nickname)}</p>
+              <dl className="character-profile-grid">
+                <div>
+                  <dt>직업/역할</dt>
+                  <dd>{detailCharacter.job}</dd>
+                </div>
+                <div>
+                  <dt>성격</dt>
+                  <dd>{detailCharacter.personality}</dd>
+                </div>
+                <div>
+                  <dt>취미</dt>
+                  <dd>{detailCharacter.hobbies}</dd>
+                </div>
+                <div>
+                  <dt>취향</dt>
+                  <dd>{detailCharacter.preference}</dd>
+                </div>
+                <div className="wide">
+                  <dt>특이사항</dt>
+                  <dd>{detailCharacter.note}</dd>
+                </div>
+              </dl>
+              <div className="photo-gallery" aria-label="추가 사진">
+                {detailCharacter.gallery.map((photo) => (
+                  <div
+                    className="gallery-thumb"
+                    key={`${photo.row}-${photo.col}-${photo.label}`}
+                    style={{
+                      backgroundImage: `url(${assetPath(photo.image)})`,
+                      backgroundPosition: galleryPosition(photo),
+                    }}
+                  >
+                    <span>{photo.label}</span>
+                  </div>
+                ))}
+              </div>
               <div className="sheet-actions">
                 <button type="button" onClick={() => toggleFavorite(detailCharacter.id)}>
                   {favorites.includes(detailCharacter.id) ? '즐겨찾기 해제' : '즐겨찾기'}
