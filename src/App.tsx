@@ -256,6 +256,112 @@ function MessageText({ text }: { text: string }) {
   )
 }
 
+type IconName = 'back' | 'chat' | 'heart' | 'heartFilled' | 'home' | 'image' | 'plus' | 'search' | 'send' | 'sparkles' | 'user' | 'x'
+
+function Icon({ name }: { name: IconName }) {
+  const common = {
+    className: 'ui-icon',
+    viewBox: '0 0 24 24',
+    'aria-hidden': true,
+  }
+
+  if (name === 'back') {
+    return (
+      <svg {...common}>
+        <path d="M15 18l-6-6 6-6" />
+      </svg>
+    )
+  }
+
+  if (name === 'chat') {
+    return (
+      <svg {...common}>
+        <path d="M5 6.5A4.5 4.5 0 0 1 9.5 2h5A4.5 4.5 0 0 1 19 6.5v4A4.5 4.5 0 0 1 14.5 15H11l-4.5 4v-4.4A4.5 4.5 0 0 1 5 10.5z" />
+      </svg>
+    )
+  }
+
+  if (name === 'heart' || name === 'heartFilled') {
+    return (
+      <svg {...common} className={`ui-icon ${name === 'heartFilled' ? 'filled' : ''}`}>
+        <path d="M20.2 5.7c-1.8-2.1-5-1.8-6.7.2L12 7.6l-1.5-1.7c-1.7-2-4.9-2.3-6.7-.2-2 2.3-1.4 5.7.8 7.7L12 20l7.4-6.6c2.2-2 2.8-5.4.8-7.7z" />
+      </svg>
+    )
+  }
+
+  if (name === 'home') {
+    return (
+      <svg {...common}>
+        <path d="M4 11.2 12 4l8 7.2" />
+        <path d="M6.5 10.5V20h11v-9.5" />
+      </svg>
+    )
+  }
+
+  if (name === 'image') {
+    return (
+      <svg {...common}>
+        <rect x="4" y="5" width="16" height="14" rx="3" />
+        <path d="m7 16 3.2-3.2 2.3 2.3 2.2-2.6L18 16" />
+        <path d="M8.5 9.5h.01" />
+      </svg>
+    )
+  }
+
+  if (name === 'plus') {
+    return (
+      <svg {...common}>
+        <path d="M12 5v14" />
+        <path d="M5 12h14" />
+      </svg>
+    )
+  }
+
+  if (name === 'search') {
+    return (
+      <svg {...common}>
+        <circle cx="11" cy="11" r="6" />
+        <path d="m16 16 4 4" />
+      </svg>
+    )
+  }
+
+  if (name === 'send') {
+    return (
+      <svg {...common}>
+        <path d="M20 4 9.5 14.5" />
+        <path d="M20 4 14 21l-4.5-6.5L3 10z" />
+      </svg>
+    )
+  }
+
+  if (name === 'sparkles') {
+    return (
+      <svg {...common}>
+        <path d="M12 3l1.3 4.2L17.5 9l-4.2 1.8L12 15l-1.3-4.2L6.5 9l4.2-1.8z" />
+        <path d="M18 14l.7 2.2L21 17l-2.3.8L18 20l-.7-2.2L15 17l2.3-.8z" />
+        <path d="M5 13l.5 1.5L7 15l-1.5.5L5 17l-.5-1.5L3 15l1.5-.5z" />
+      </svg>
+    )
+  }
+
+  if (name === 'user') {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M5 20a7 7 0 0 1 14 0" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg {...common}>
+      <path d="M6 6l12 12" />
+      <path d="M18 6 6 18" />
+    </svg>
+  )
+}
+
 function parseSpeakerDraft(text: string, castMembers: CastMember[]) {
   const trimmed = text.trim()
   if (!trimmed.startsWith('@')) return { text: trimmed }
@@ -677,7 +783,7 @@ function App() {
       <main className="phone-shell chat-view">
         <header className="detail-header">
           <button type="button" onClick={() => setSelectedCharacter(null)} aria-label="뒤로 가기">
-            ‹
+            <Icon name="back" />
           </button>
           <div>
             <strong>{selectedCharacter.title}</strong>
@@ -685,10 +791,10 @@ function App() {
           </div>
           <div className="chat-header-actions">
             <button type="button" onClick={() => setAddCastOpen(true)} aria-label="인물 추가">
-              ＋
+              <Icon name="plus" />
             </button>
             <button type="button" onClick={() => toggleFavorite(selectedCharacter.id)} aria-label="즐겨찾기">
-              {favorites.includes(selectedCharacter.id) ? '♥' : '♡'}
+              <Icon name={favorites.includes(selectedCharacter.id) ? 'heartFilled' : 'heart'} />
             </button>
           </div>
         </header>
@@ -747,10 +853,11 @@ function App() {
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={handleComposerKeyDown}
-            placeholder="Enter 전송 · Shift+Enter 줄바꿈 · *상황* · @인물이름 대사"
+            placeholder="메시지를 입력하세요"
           />
           <button type="submit" disabled={!draft.trim() || isSending}>
-            전송
+            <Icon name="send" />
+            <span>전송</span>
           </button>
         </form>
 
@@ -781,12 +888,22 @@ function App() {
                 사진 URL
                 <input value={castImage.startsWith('data:') ? '업로드한 이미지 사용 중' : castImage} onChange={(event) => setCastImage(event.target.value)} placeholder="https://..." />
               </label>
-              <label>
-                내 사진 업로드
+              {castImage && (
+                <div className="cast-image-preview">
+                  <img src={assetPath(castImage)} alt="" />
+                  <span>선택한 사진</span>
+                </div>
+              )}
+              <label className="upload-tile">
                 <input type="file" accept="image/*" onChange={(event) => handleCastImageUpload(event.target.files?.[0])} />
+                <span>
+                  <Icon name="image" />
+                  내 사진 선택
+                </span>
               </label>
               <div className="sheet-actions">
                 <button type="button" onClick={suggestCastProfile}>
+                  <Icon name="sparkles" />
                   Gemini로 추천
                 </button>
                 <button type="submit" disabled={!castName.trim()}>
@@ -813,7 +930,7 @@ function App() {
         </nav>
         <div className="top-actions">
           <button className="search-button" type="button" onClick={() => setSearchOpen((value) => !value)} aria-label="검색">
-            ⌕
+            <Icon name="search" />
           </button>
           <button className="login-button" type="button" onClick={() => setTab('my')}>
             로그인
@@ -1019,7 +1136,7 @@ function App() {
           <div className="sheet-content">
             <img src={assetPath(detailCharacter.image)} alt="" />
             <button className="sheet-close" type="button" onClick={() => setDetailCharacter(null)}>
-              ×
+              <Icon name="x" />
             </button>
             <div className="sheet-copy">
               <span>#{detailCharacter.tags.join(' #')}</span>
@@ -1040,19 +1157,19 @@ function App() {
 
       <nav className="bottom-nav" aria-label="하단 메뉴">
         <button className={tab === 'home' ? 'active' : ''} type="button" onClick={() => setTab('home')}>
-          <span>⌂</span>
+          <Icon name="home" />
           홈
         </button>
         <button className={tab === 'chats' ? 'active' : ''} type="button" onClick={() => setTab('chats')}>
-          <span>●●●</span>
+          <Icon name="chat" />
           대화
         </button>
         <button className={tab === 'create' ? 'active' : ''} type="button" onClick={() => setTab('create')}>
-          <span>＋</span>
+          <Icon name="plus" />
           제작
         </button>
         <button className={tab === 'my' ? 'active' : ''} type="button" onClick={() => setTab('my')}>
-          <span>♟</span>
+          <Icon name="user" />
           마이페이지
         </button>
       </nav>
