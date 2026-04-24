@@ -6,12 +6,6 @@ export default defineConfig({
   base: process.env.GITHUB_PAGES === 'true' ? '/AiChatBot/' : '/',
   plugins: [react()],
   server: {
-    proxy: {
-      '/ollama': {
-        target: 'http://localhost:11434',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/ollama/, ''),
-      },
-    },
+    port: Number(process.env.PORT) || 5173,
   },
 })

@@ -1,43 +1,50 @@
-# AI ChatBot
+# 로맨스 AI
 
-실사풍 캐릭터 랭킹 화면과 캐릭터별 대화를 제공하는 성인 창작용 AI 챗봇 웹 앱입니다.
+Google의 **Gemini API (Gemma 3 27B IT)** 를 사용해 한국어 성인 창작 로맨스 대화를 나눌 수 있는 모바일 웹 앱입니다.
 
-## 실행 방법
+## 실행
 
 ```powershell
 npm install
 npm run dev
 ```
 
-로컬에서 Ollama를 쓸 경우:
+## 설정
 
-```powershell
-ollama run huihui_ai/qwen3-abliterated:32b
-```
+### 1. Gemini API 키 (필수, 무료)
 
-32B 모델이 무거우면 앱의 마이페이지에서 더 가벼운 모델로 바꿔 테스트할 수 있습니다.
+1. [Google AI Studio](https://aistudio.google.com/app/apikey) 에서 무료 API 키 발급
+2. 앱 하단의 **설정 → Gemini 연결**에 키 입력
+3. 기본 모델: `gemma-3-27b-it` (원하는 모델로 수정 가능)
 
-## 배포 후 AI 답변 연결
+키는 브라우저(localStorage)에만 저장됩니다.
 
-GitHub Pages는 웹앱을 무료로 올려주는 곳이고, 큰 LLM을 직접 실행하는 서버는 아닙니다.
+### 2. Google 로그인 (선택, 무료)
 
-배포된 앱에서 답변을 받으려면 앱의 마이페이지에서 연결 방식을 고르면 됩니다.
+로그인하면 구글 프로필 이름/사진이 자동으로 반영됩니다.
 
-- `Gemini`: Google AI Studio에서 발급한 Gemini API 키를 넣습니다. 기본 모델 이름은 `gemma-4-31b-it`입니다.
-- `OpenRouter`: OpenRouter API 키와 모델 이름을 넣습니다. 기본 모델 입력값은 `openrouter/auto`입니다.
-- `로컬`: 내 PC에서 Ollama가 켜져 있을 때만 사용합니다.
+1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) 에서 프로젝트를 만들고 **OAuth 2.0 Client ID** 생성 (Web application)
+2. Authorized JavaScript origins에 앱 주소를 등록 (개발: `http://localhost:5173`, 배포: `https://<사용자>.github.io` 등)
+3. 발급된 Client ID를 앱의 **설정 → 계정** 에 붙여넣기
+   - 또는 `.env` 파일에 `VITE_GOOGLE_CLIENT_ID=...` 로 지정
 
-Gemini API 키는 앱 안의 내 브라우저에만 저장됩니다. 다른 사람에게 공유하거나 GitHub에 올리면 안 됩니다.
+로그인 토큰은 브라우저에서만 디코딩되어 프로필 표시에만 쓰이며, 별도 서버로 전송되지 않습니다.
 
 ## 채팅 사용법
 
-- Enter를 누르면 바로 전송됩니다.
-- Shift+Enter를 누르면 줄바꿈됩니다.
-- `*잠깐 시선을 피한다*`처럼 별표 안에 쓰면 상황 묘사로 표시됩니다.
-- `@박수아 오늘 무슨 생각했어?`처럼 쓰면 해당 인물이 직접 말한 것으로 처리됩니다.
-- 채팅 화면의 `＋` 버튼으로 새 인물을 추가하고, 사진과 성격을 설정할 수 있습니다.
-- Gemini API 키를 넣어두면 새 인물의 직업, 성격, 특징을 Gemini가 추천해 줄 수 있습니다.
+- **Enter** 전송 / **Shift+Enter** 줄바꿈
+- `*시선을 피한다*` 처럼 별표 안은 상황 묘사
+- `@박수아 오늘 무슨 생각했어?` 로 특정 인물이 직접 말하게 하기
+- 채팅 화면의 `＋` 버튼으로 새 인물 추가 (AI가 설정 추천 가능)
+
+## 데이터 보관
+
+다음은 모두 **내 브라우저의 localStorage**에만 저장됩니다.
+
+- Gemini API 키, 모델 이름, 닉네임
+- 채팅 세션, 즐겨찾기, 직접 만든 캐릭터
+- Google 로그인 프로필, Google Client ID
 
 ## 성인 대화 기준
 
-성인 간 합의된 창작 대화는 허용하는 방향으로 설계했습니다. 다만 미성년자, 강압, 비동의, 불법 행위, 실제 개인을 대상으로 한 성적 묘사는 다루지 않도록 안내 문구를 넣었습니다.
+성인 간 합의된 창작 대화는 허용합니다. 미성년자, 강압, 비동의, 불법 행위, 실제 개인을 대상으로 한 성적 묘사는 거절하도록 설계되어 있습니다.

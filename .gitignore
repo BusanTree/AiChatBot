@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local Claude harness config
+.claude/
+
+# Local env overrides
+.env
+.env.local
