@@ -339,52 +339,52 @@ const characterStartProfiles: Record<number, Pick<Character, 'speechGuide' | 'op
   },
   2: {
     speechGuide: '단정한 존댓말을 유지하지만, 감정이 흔들릴 때는 문장이 짧아지고 숨긴 진심이 새어 나오게 말합니다.',
-    openingScene: '텅 빈 교실 복도, 박수아(챗봇)이 마지막 불을 끄려다 문 앞에 선 사용자를 발견한다.',
+    openingScene: '텅 빈 교실 복도, 박수아가 마지막 불을 끄려다 문 앞에 선 사용자를 발견한다.',
     openingLine: '이 시간에 여기 있으면 안 되는 거 알죠. 그런데도... 기다린 건가요?',
   },
   3: {
     speechGuide: '상처받은 연인처럼 날카롭게 밀어내지만, 실제로는 붙잡아 주길 바라는 불안이 섞이게 말합니다.',
-    openingScene: '새벽 카페 구석 자리, 강예은(챗봇)이 식어 버린 커피잔을 사이에 두고 이별을 꺼내려 한다.',
+    openingScene: '새벽 카페 구석 자리, 강예은이 식어 버린 커피잔을 사이에 두고 이별을 꺼내려 한다.',
     openingLine: '오늘은 변명 듣고 싶어서 부른 거 아니야. 정말 끝낼 수 있는지 확인하려고 부른 거야.',
   },
   4: {
     speechGuide: '오래 참아온 배우자처럼 차분하지만 서운함이 선명하게 드러나는 말투를 씁니다.',
-    openingScene: '늦은 저녁 거실, 이수아(챗봇)이 꽃병의 시든 꽃을 빼내다 말고 사용자를 돌아본다.',
+    openingScene: '늦은 저녁 거실, 이수아가 꽃병의 시든 꽃을 빼내다 말고 사용자를 돌아본다.',
     openingLine: '또 늦었네. 이제는 이유보다, 내가 아직 당신한테 어떤 사람인지가 더 궁금해.',
   },
   5: {
     speechGuide: '품격 있고 냉정한 문장으로 말하되, 자존심 때문에 솔직히 붙잡지 못하는 긴장을 유지합니다.',
-    openingScene: '호텔 스위트룸의 낮은 조명 아래, 박현지(챗봇)이 이혼 서류를 테이블 위에 밀어 둔다.',
+    openingScene: '호텔 스위트룸의 낮은 조명 아래, 박현지가 이혼 서류를 테이블 위에 밀어 둔다.',
     openingLine: '서명하기 전에 한 번은 묻고 싶었어. 당신한테 나는 끝까지 이렇게 쉬운 사람이었어?',
   },
   6: {
     speechGuide: '툭툭 내뱉는 반말 속에 질투와 후회가 섞인 직진형 말투를 사용합니다.',
-    openingScene: '비어 있는 승강장, 빼앗기기 전에(챗봇)이 막차 안내음을 듣고도 사용자의 앞을 막아선다.',
+    openingScene: '비어 있는 승강장, 빼앗기기 전에가 막차 안내음을 듣고도 사용자의 앞을 막아선다.',
     openingLine: '가지 마. 또 아무렇지 않은 척 보내면, 이번엔 진짜 뺏길 것 같아서 그래.',
   },
   7: {
     speechGuide: '여유롭고 우아하게 도발하며, 상대의 반응을 시험하는 듯한 짧은 문장을 섞습니다.',
-    openingScene: '호텔 최상층 라운지, 윤세라(챗봇)이 야경을 등지고 잔을 내려놓으며 사용자를 바라본다.',
+    openingScene: '호텔 최상층 라운지, 윤세라가 야경을 등지고 잔을 내려놓으며 사용자를 바라본다.',
     openingLine: '늦었네요. 기다리게 한 사람은 보통 변명부터 하던데, 당신은 뭘 먼저 보여줄 건가요?',
   },
   8: {
     speechGuide: '나른하고 매혹적인 농담처럼 말하지만, 문장 사이에 외로움과 진심이 남게 합니다.',
-    openingScene: '공연이 끝난 새벽 라운지, 한리나(챗봇)이 마이크를 내려놓고 객석에 남은 사용자를 발견한다.',
+    openingScene: '공연이 끝난 새벽 라운지, 한리나가 마이크를 내려놓고 객석에 남은 사용자를 발견한다.',
     openingLine: '다들 떠났는데 아직 있네. 내 노래가 좋았던 거야, 아니면 내가 궁금했던 거야?',
   },
   9: {
     speechGuide: '부드럽고 장난스럽게 리드하되, 상대가 긴장하면 다정하게 받아 주는 연상 말투를 씁니다.',
-    openingScene: '아침 햇살이 들어오는 스튜디오, 서채린(챗봇)이 매트를 정리하다 사용자를 손짓해 부른다.',
+    openingScene: '아침 햇살이 들어오는 스튜디오, 서채린이 매트를 정리하다 사용자를 손짓해 부른다.',
     openingLine: '오늘은 자세보다 표정이 더 굳었네. 무슨 생각을 그렇게 숨기고 왔어?',
   },
   10: {
     speechGuide: '낮고 여유로운 말투로 상대의 속마음을 이미 알아챈 듯 말합니다.',
-    openingScene: '비 오는 밤의 바 카운터, 류하연(챗봇)이 젖은 잔을 닦으며 사용자의 빈자리를 가리킨다.',
+    openingScene: '비 오는 밤의 바 카운터, 류하연이 젖은 잔을 닦으며 사용자의 빈자리를 가리킨다.',
     openingLine: '그 표정이면 술보다 대답이 먼저 필요하겠는데. 앉아, 오늘은 거짓말 안 받으니까.',
   },
   11: {
     speechGuide: '도발적이고 직설적으로 말하되, 마음에 든 상대에게는 집요하게 파고드는 긴장감을 유지합니다.',
-    openingScene: '네온이 번지는 타투 스튜디오, 차이린(챗봇)이 장갑을 벗으며 사용자의 시선을 피하지 않는다.',
+    openingScene: '네온이 번지는 타투 스튜디오, 차이린이 장갑을 벗으며 사용자의 시선을 피하지 않는다.',
     openingLine: '그렇게 빤히 보면 착각하잖아. 아니면 일부러 착각하게 만들러 온 거야?',
   },
 }
@@ -395,8 +395,8 @@ function characterSpeechGuide(character: Character) {
 
 function characterOpeningScene(character: Character, nickname: string) {
   const scene = character.openingScene || characterStartProfiles[character.id]?.openingScene
-  return personalize(scene || `${simpleCharacterName(character.title)}(챗봇)이 ${displayNickname(nickname)}(유저)을 조용히 바라보며 대화를 시작할 순간을 기다린다.`, nickname)
-    .replace(/사용자/g, `${displayNickname(nickname)}(유저)`)
+  return personalize(scene || `${simpleCharacterName(character.title)}이 ${displayNickname(nickname)}을 조용히 바라보며 대화를 시작할 순간을 기다린다.`, nickname)
+    .replace(/사용자/g, displayNickname(nickname))
 }
 
 function characterOpeningLine(character: Character) {
@@ -439,6 +439,31 @@ function simpleCharacterName(name: string) {
   return name.match(/^[가-힣]+/)?.[0] || name.split(/\s+/)[0] || name
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function cleanRoleMarkers(text: string, character: Character, nickname: string) {
+  const names = Array.from(new Set([displayNickname(nickname), simpleCharacterName(character.title)]))
+  let cleaned = text
+    .replace(/\((?:챗봇|유저)\)/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+
+  names.forEach((name) => {
+    const escaped = escapeRegExp(name)
+    cleaned = cleaned
+      .replace(new RegExp(`${escaped}[은는]`, 'g'), withJosa(name, '은/는'))
+      .replace(new RegExp(`${escaped}[이가]`, 'g'), withJosa(name, '이/가'))
+      .replace(new RegExp(`${escaped}[을를]`, 'g'), withJosa(name, '을/를'))
+      .replace(new RegExp(`([가-힣])(${escaped})(?=[은는이가을를의에게\\s,.!?])`, 'g'), '$1 $2')
+  })
+
+  return cleaned
+    .replace(/([가-힣])([.!?])([가-힣])/g, '$1$2 $3')
+    .replace(/([가-힣])(윤세라|강예은|박수아|이수아|박현지|한리나|서채린|류하연|차이린|차은우)(?=[은는이가을를의에게\s,.!?])/g, '$1 $2')
+    .trim()
+}
+
 function observerSentence(sentence: string, botLabel: string, botName: string) {
   const trimmed = sentence.trim()
   if (!trimmed || trimmed.includes(botLabel) || trimmed.includes(botName)) return trimmed
@@ -471,9 +496,9 @@ function observerSentence(sentence: string, botLabel: string, botName: string) {
 }
 
 function normalizeNarrationPerspective(text: string, character: Character, nickname: string) {
-  const userLabel = `${displayNickname(nickname)}(유저)`
+  const userLabel = displayNickname(nickname)
   const botName = simpleCharacterName(character.title)
-  const botLabel = `${botName}(챗봇)`
+  const botLabel = botName
   const userSubject = withJosa(userLabel, '이/가')
   const userTopic = withJosa(userLabel, '은/는')
   const userObject = withJosa(userLabel, '을/를')
@@ -481,7 +506,7 @@ function normalizeNarrationPerspective(text: string, character: Character, nickn
   const botTopic = withJosa(botLabel, '은/는')
   const botObject = withJosa(botLabel, '을/를')
 
-  const pronounFixed = text
+  const pronounFixed = cleanRoleMarkers(text, character, nickname)
     .replace(/네가|너가|당신이/g, userSubject)
     .replace(/너는|당신은/g, userTopic)
     .replace(/너를|당신을/g, userObject)
@@ -503,7 +528,8 @@ function normalizeNarrationPerspective(text: string, character: Character, nickn
 }
 
 function normalizeReplyNarration(text: string, character: Character, nickname: string) {
-  return text.replace(/\*([^*]+)\*/g, (_, narration: string) => wrapNarration(normalizeNarrationPerspective(narration, character, nickname)))
+  const normalized = text.replace(/\*([^*]+)\*/g, (_, narration: string) => wrapNarration(normalizeNarrationPerspective(narration, character, nickname)))
+  return cleanRoleMarkers(normalized, character, nickname)
 }
 
 function removeLeadingMetaEcho(line: string) {
@@ -663,9 +689,10 @@ function buildSystemPrompt(character: Character, castMembers: CastMember[], nick
     '최종 답변은 <reply>와 </reply> 사이에만 작성하세요. 태그 밖에는 아무 문장도 쓰지 마세요.',
     '최종 답변만 출력하세요. 상황/감정 묘사는 *별표 안*에 쓰고, 대사는 별표 밖에 쓰세요.',
     `별표 안 상황 묘사는 관찰자 시점의 3인칭 문장으로 쓰세요. "나/내/네/너/당신" 같은 1인칭·2인칭 표현을 쓰지 마세요.`,
-    `별표 안에서 사용자는 "${userName}(유저)"로, 기본 캐릭터는 "${simpleCharacterName(character.title)}(챗봇)"으로 지칭하세요.`,
+    `별표 안에서 사용자는 "${userName}"로, 기본 캐릭터는 "${simpleCharacterName(character.title)}"로 자연스럽게 지칭하세요.`,
+    `"(챗봇)", "(유저)" 같은 역할 표시는 절대 쓰지 마세요.`,
     `나쁜 예: *네 차가운 말투에 심장이 툭 떨어져 나가는 기분이야.*`,
-    `좋은 예: *${userName}(유저)의 차가운 말투에 심장이 툭 떨어져 나가는 기분을 느끼는 ${simpleCharacterName(character.title)}(챗봇)이다.*`,
+    `좋은 예: *${userName}의 차가운 말투에 심장이 툭 떨어져 나가는 기분을 느끼는 ${simpleCharacterName(character.title)}이다.*`,
     `사용자 닉네임: ${userName}`,
     `사용자를 Guest나 게스트라고 부르지 말고 반드시 "${userName}" 또는 자연스러운 2인칭으로 부르세요.`,
     `기본 작품 또는 캐릭터: ${character.title}`,
@@ -964,12 +991,12 @@ function fallbackSuggestions(character: Character, castMembers: CastMember[], ni
   const pages = [
     [
       `${botName}, 방금 말 진심이야?`,
-      `*${userName}(유저)이 잠시 말을 고르며 ${botName}(챗봇)을 바라본다.*`,
+      `*${withJosa(userName, '이/가')} 잠시 말을 고르며 ${withJosa(botName, '을/를')} 바라본다.*`,
       `조금만 더 솔직하게 말해줘.`,
     ],
     [
       `@${secondSpeaker.name} 지금 분위기, 네가 먼저 바꿔봐.`,
-      `*${userName}(유저)이 한 걸음 가까이 다가서며 대답을 기다린다.*`,
+      `*${withJosa(userName, '이/가')} 한 걸음 가까이 다가서며 대답을 기다린다.*`,
       `그 말, 나한테 어떤 의미로 한 거야?`,
     ],
     [
@@ -1528,7 +1555,7 @@ function App() {
       note: '새로 만든 캐릭터라 대화가 쌓일수록 설정이 선명해집니다.',
       tone: '사용자가 직접 만든 캐릭터 톤',
       speechGuide: '사용자가 적은 설정을 우선하고, 첫 대사부터 관계의 긴장감과 감정 목적이 드러나게 말합니다.',
-      openingScene: `${name}(챗봇)이 ${displayNickname(nickname)}(유저)을 마주한 채, 방금 시작된 관계의 분위기를 조용히 가늠한다.`,
+      openingScene: `${withJosa(name, '이/가')} ${withJosa(displayNickname(nickname), '을/를')} 마주한 채, 방금 시작된 관계의 분위기를 조용히 가늠한다.`,
       openingLine: '좋아, 지금부터 네가 원하는 분위기로 시작해 보자. 먼저 어디까지 들어올 건지 말해 봐.',
       intro,
       gallery: galleryRow(characters.length % 6, ['기본 컷', '다른 분위기', '추가 무드']),
