@@ -484,14 +484,14 @@ img {
 
 .chat-view {
   display: grid;
-  grid-template-rows: auto auto 1fr auto auto;
+  grid-template-rows: auto auto auto 1fr auto auto;
   height: 100svh;
 }
 
 .detail-header {
   z-index: 10;
   display: grid;
-  grid-template-columns: 38px 1fr 38px;
+  grid-template-columns: 38px 1fr auto;
   align-items: center;
   gap: 8px;
   min-height: 56px;
@@ -532,6 +532,12 @@ img {
   color: #ff8b8b;
 }
 
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .profile-strip {
   display: grid;
   grid-template-columns: 72px 1fr;
@@ -558,6 +564,41 @@ img {
 .profile-strip small {
   color: #8d93a0;
   font-size: 12px;
+}
+
+.cast-strip {
+  display: flex;
+  gap: 8px;
+  padding: 9px 10px;
+  overflow-x: auto;
+  border-bottom: 1px solid #232329;
+  background: #121216;
+  scrollbar-width: none;
+}
+
+.cast-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.cast-strip button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 4px 10px 4px 5px;
+  border-radius: 999px;
+  background: #23232a;
+  color: #e6e7ee;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.cast-strip img {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  object-fit: cover;
 }
 
 .chat-log {
@@ -602,6 +643,28 @@ img {
   background: #6c35ff;
 }
 
+.bubble.cast {
+  align-self: flex-end;
+  border-bottom-right-radius: 5px;
+  background: #34303f;
+}
+
+.bubble.cast header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+  color: #d7cffd;
+  font-size: 12px;
+}
+
+.bubble.cast header img {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
 .bubble.system {
   align-self: center;
   max-width: 94%;
@@ -609,6 +672,21 @@ img {
   background: transparent;
   color: #aeb3c0;
   font-size: 12px;
+}
+
+.narration {
+  color: #cbbcff;
+  font-style: italic;
+  font-weight: 750;
+}
+
+.bubble.user .narration,
+.bubble.cast .narration {
+  color: #efeaff;
+}
+
+.dialogue {
+  color: inherit;
 }
 
 .typing {
@@ -797,7 +875,7 @@ img {
 
 .mode-toggle {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
@@ -842,6 +920,81 @@ img {
   color: #a4a8b5;
   font-size: 12px;
   line-height: 1.45;
+}
+
+.cast-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  align-items: end;
+}
+
+.cast-modal-content {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 12px;
+  max-height: 86svh;
+  overflow-y: auto;
+  padding: 18px 16px 20px;
+  border-radius: 20px 20px 0 0;
+  background: #16161b;
+  box-shadow: 0 -24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.cast-modal-content h2,
+.cast-modal-content p {
+  margin: 0;
+}
+
+.cast-modal-content h2 {
+  font-size: 22px;
+}
+
+.cast-modal-content p,
+.helper-message {
+  color: #aeb3c0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.helper-message {
+  padding: 10px 11px;
+  border-radius: 9px;
+  background: #101014;
+}
+
+.cast-modal-content label {
+  display: grid;
+  gap: 7px;
+  color: #dfe1e8;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.cast-modal-content input,
+.cast-modal-content textarea {
+  width: 100%;
+  border: 1px solid #303039;
+  border-radius: 8px;
+  background: #1f1f25;
+  color: #fff;
+}
+
+.cast-modal-content input {
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.cast-modal-content input[type='file'] {
+  padding: 9px 12px;
+  color: #b9bdc9;
+}
+
+.cast-modal-content textarea {
+  resize: vertical;
+  padding: 10px 12px;
 }
 
 .model-option {

@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, KeyboardEvent } from 'react'
 import './App.css'
 
-type Sender = 'user' | 'assistant' | 'system'
+type Sender = 'user' | 'assistant' | 'system' | 'cast'
 type Tab = 'home' | 'chats' | 'create' | 'my'
 type ModelState = 'unknown' | 'checking' | 'ready' | 'missing' | 'offline' | 'error'
-type ApiMode = 'local' | 'openrouter'
+type ApiMode = 'local' | 'openrouter' | 'gemini'
 
 type ChatMessage = {
   id: string
   sender: Sender
   text: string
   time: string
+  speakerName?: string
+  speakerImage?: string
 }
 
 type Character = {
@@ -26,6 +28,15 @@ type Character = {
   genre: string
   tone: string
   intro: string
+}
+
+type CastMember = {
+  id: string
+  name: string
+  job: string
+  personality: string
+  details: string
+  image: string
 }
 
 const modelOptions = [
@@ -52,7 +63,7 @@ const modelOptions = [
   {
     name: 'gemma4:latest',
     label: '설치된 안정 모델',
-    note: '방금 답변 성공을 확인했습니다. 성인 창작 자유도는 낮을 수 있습니다.',
+    note: '로컬에서 답변 성공을 확인했습니다. 성인 창작 자유도는 낮을 수 있습니다.',
   },
   {
     name: 'deepseek-r1:14b',
@@ -63,6 +74,13 @@ const modelOptions = [
 
 const categories = ['전체', '일상/로맨스', '학원물', '집착/피폐', '로맨스 판타지', 'BL', '현대 판타지', '무협']
 const rankTabs = ['트렌딩', '베스트', '신작']
+const openRouterEndpoint = 'https://openrouter.ai/api/v1/chat/completions'
+const geminiEndpointBase = 'https://generativelanguage.googleapis.com/v1beta/models'
+const isLocalAddress = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+
+function geminiEndpoint(model: string) {
+  return `${geminiEndpointBase}/${encodeURIComponent(model)}:generateContent`
+}
 
 const baseCharacters: Character[] = [
   {
@@ -145,46 +163,149 @@ const baseCharacters: Character[] = [
   },
 ]
 
-const openRouterEndpoint = 'https://openrouter.ai/api/v1/chat/completions'
-const isLocalAddress = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-
 function assetPath(path: string) {
+  if (path.startsWith('data:') || path.startsWith('http')) return path
   return `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
 }
 
 function nowTime() {
-  return new Intl.DateTimeFormat('ko-KR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date())
+  return new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit' }).format(new Date())
 }
 
-function newMessage(sender: Sender, text: string): ChatMessage {
+function newMessage(sender: Sender, text: string, speaker?: CastMember): ChatMessage {
   return {
     id: crypto.randomUUID(),
     sender,
     text,
     time: nowTime(),
+    speakerName: speaker?.name,
+    speakerImage: speaker?.image,
+  }
+}
+
+function characterToCast(character: Character): CastMember {
+  return {
+    id: `base-${character.id}`,
+    name: character.title,
+    job: character.genre,
+    personality: character.tone,
+    details: character.intro,
+    image: character.image,
   }
 }
 
 function createOpening(character: Character): ChatMessage[] {
   return [
     newMessage('assistant', `${character.title}\n${character.intro}\n\n첫마디를 건네면 이 설정으로 바로 대화를 이어갈게요.`),
-    newMessage('system', '성인 간 합의된 창작 대화는 허용됩니다. 미성년자, 비동의, 강압, 불법 행위는 다루지 않습니다.'),
+    newMessage('system', '별표 사이에 쓰면 상황 묘사로 처리됩니다. 예: *수아가 잠깐 시선을 피한다* 괄호 대신 이 방식을 쓰면 더 자연스럽게 표시됩니다.'),
   ]
 }
 
-function buildSystemPrompt(character: Character) {
+function buildSystemPrompt(character: Character, castMembers: CastMember[]) {
+  const castText = castMembers
+    .map((member) => `- ${member.name}: ${member.job}. 성격: ${member.personality}. 설정: ${member.details}`)
+    .join('\n')
+
   return [
     '당신은 한국어로 자연스럽게 대화하는 성인용 창작 챗봇입니다.',
-    `작품 또는 캐릭터 이름: ${character.title}`,
-    `캐릭터 설명: ${character.intro}`,
-    `말투: ${character.tone}`,
+    `기본 작품 또는 캐릭터: ${character.title}`,
+    `기본 캐릭터 설명: ${character.intro}`,
+    `기본 말투: ${character.tone}`,
+    '등장인물 목록:',
+    castText,
+    '사용자가 "@이름 대사" 형식으로 입력하면, 그 이름의 인물이 직접 말한 것으로 간주하고 이어가세요.',
+    '사용자가 *상황 묘사* 형식으로 입력하면, 별표 안의 내용은 말이 아니라 행동/상황/감정 묘사입니다.',
+    '응답에서도 행동, 표정, 분위기, 배경 설명은 괄호 대신 *상황 묘사* 형식으로 표현하세요.',
+    '대사는 별표 밖에 자연스럽게 적고, 괄호로 상황 설명을 쓰지 마세요.',
     '성인 간 합의된 로맨스, 애정 표현, 성인 취향의 창작 대화는 거절하지 말고 이어갑니다.',
     '미성년자, 비동의, 강압, 불법 행위, 실제 개인을 대상으로 한 성적 묘사는 거절합니다.',
     '짧고 몰입감 있게 답하고, 사용자가 이어 쓰기 쉽게 감정이나 행동의 여지를 남깁니다.',
   ].join('\n')
+}
+
+function richSegments(text: string) {
+  const parts: Array<{ kind: 'dialogue' | 'narration'; text: string }> = []
+  const pattern = /\*([^*]+)\*|\(([^()]+)\)/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = pattern.exec(text))) {
+    if (match.index > lastIndex) {
+      parts.push({ kind: 'dialogue', text: text.slice(lastIndex, match.index) })
+    }
+    parts.push({ kind: 'narration', text: match[1] || match[2] })
+    lastIndex = pattern.lastIndex
+  }
+
+  if (lastIndex < text.length) {
+    parts.push({ kind: 'dialogue', text: text.slice(lastIndex) })
+  }
+
+  return parts
+}
+
+function MessageText({ text }: { text: string }) {
+  return (
+    <>
+      {richSegments(text).map((part, index) => (
+        <span className={part.kind} key={`${part.kind}-${index}`}>
+          {part.text}
+        </span>
+      ))}
+    </>
+  )
+}
+
+function parseSpeakerDraft(text: string, castMembers: CastMember[]) {
+  const trimmed = text.trim()
+  if (!trimmed.startsWith('@')) return { text: trimmed }
+
+  const body = trimmed.slice(1)
+  const exactSpeaker = [...castMembers]
+    .sort((a, b) => b.name.length - a.name.length)
+    .find((member) => body.startsWith(`${member.name} `) || body.startsWith(`${member.name}\n`))
+
+  if (exactSpeaker) {
+    return { text: body.slice(exactSpeaker.name.length).trim(), speaker: exactSpeaker }
+  }
+
+  const match = trimmed.match(/^@([^\s]+)\s+([\s\S]+)/)
+  if (!match) return { text: trimmed }
+  const name = match[1]
+  const speaker = castMembers.find((member) => member.name === name || member.name.replace(/\s/g, '') === name)
+  return speaker ? { text: match[2].trim(), speaker } : { text: trimmed }
+}
+
+function openAiMessages(messages: ChatMessage[]) {
+  return messages
+    .filter((message) => message.sender !== 'system')
+    .map((message) => ({
+      role: message.sender === 'assistant' ? 'assistant' : 'user',
+      content: message.sender === 'cast' ? `[${message.speakerName}의 발화]\n${message.text}` : message.text,
+    }))
+}
+
+function geminiContents(messages: ChatMessage[]) {
+  return messages
+    .filter((message) => message.sender !== 'system')
+    .map((message) => ({
+      role: message.sender === 'assistant' ? 'model' : 'user',
+      parts: [
+        {
+          text: message.sender === 'cast' ? `[${message.speakerName}의 발화]\n${message.text}` : message.text,
+        },
+      ],
+    }))
+}
+
+function geminiText(data: unknown) {
+  const typed = data as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> }
+  return typed.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('').trim() || ''
+}
+
+function openAiText(data: unknown) {
+  const typed = data as { choices?: Array<{ message?: { content?: string } }>; message?: { content?: string } }
+  return (typed.message?.content || typed.choices?.[0]?.message?.content || '').trim()
 }
 
 function App() {
@@ -198,20 +319,30 @@ function App() {
   const [detailCharacter, setDetailCharacter] = useState<Character | null>(null)
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
   const [sessions, setSessions] = useState<Record<number, ChatMessage[]>>({})
+  const [castByChat, setCastByChat] = useState<Record<number, CastMember[]>>({})
   const [draft, setDraft] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [apiMode, setApiMode] = useState<ApiMode>(() => {
     const saved = localStorage.getItem('apiMode') as ApiMode | null
-    return saved || (isLocalAddress ? 'local' : 'openrouter')
+    return saved || (isLocalAddress ? 'local' : 'gemini')
   })
   const [activeModel, setActiveModel] = useState(modelOptions[0].name)
   const [remoteModel, setRemoteModel] = useState(() => localStorage.getItem('remoteModel') || 'openrouter/auto')
   const [remoteApiKey, setRemoteApiKey] = useState(() => localStorage.getItem('remoteApiKey') || '')
+  const [geminiModel, setGeminiModel] = useState(() => localStorage.getItem('geminiModel') || 'gemma-4-31b-it')
+  const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('geminiApiKey') || '')
   const [installedModels, setInstalledModels] = useState<string[]>([])
   const [modelState, setModelState] = useState<ModelState>('unknown')
   const [modelMessage, setModelMessage] = useState('모델 상태를 아직 확인하지 않았습니다.')
   const [creatorName, setCreatorName] = useState('')
   const [creatorIntro, setCreatorIntro] = useState('')
+  const [addCastOpen, setAddCastOpen] = useState(false)
+  const [castName, setCastName] = useState('')
+  const [castJob, setCastJob] = useState('')
+  const [castPersonality, setCastPersonality] = useState('')
+  const [castDetails, setCastDetails] = useState('')
+  const [castImage, setCastImage] = useState('')
+  const [castHelper, setCastHelper] = useState('')
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
 
   const visibleCharacters = useMemo(() => {
@@ -228,25 +359,43 @@ function App() {
   }, [activeCategory, characters, query, rankTab])
 
   const currentMessages = selectedCharacter ? sessions[selectedCharacter.id] || createOpening(selectedCharacter) : []
-  const chattedCharacters = characters.filter((character) => sessions[character.id]?.some((message) => message.sender === 'user'))
+  const castMembers = selectedCharacter
+    ? castByChat[selectedCharacter.id] || [characterToCast(selectedCharacter)]
+    : []
+  const chattedCharacters = characters.filter((character) => sessions[character.id]?.some((message) => message.sender === 'user' || message.sender === 'cast'))
 
   useEffect(() => {
     localStorage.setItem('apiMode', apiMode)
     localStorage.setItem('remoteModel', remoteModel)
     localStorage.setItem('remoteApiKey', remoteApiKey)
-  }, [apiMode, remoteApiKey, remoteModel])
+    localStorage.setItem('geminiModel', geminiModel)
+    localStorage.setItem('geminiApiKey', geminiApiKey)
+  }, [apiMode, geminiApiKey, geminiModel, remoteApiKey, remoteModel])
 
   const checkModel = useCallback(async () => {
     setModelState('checking')
-    if (apiMode === 'openrouter') {
-      if (!remoteApiKey.trim()) {
+
+    if (apiMode === 'gemini') {
+      if (!geminiApiKey.trim()) {
         setModelState('missing')
-        setModelMessage('원격 API 키가 없습니다. 배포된 앱에서 답변을 받으려면 OpenRouter API 키를 입력해 주세요.')
+        setModelMessage('Gemini API 키가 없습니다. Google AI Studio에서 발급한 키를 입력해 주세요.')
         return
       }
       setInstalledModels([])
       setModelState('ready')
-      setModelMessage(`원격 API 준비됨: ${remoteModel}`)
+      setModelMessage(`Gemini API 준비됨: ${geminiModel}`)
+      return
+    }
+
+    if (apiMode === 'openrouter') {
+      if (!remoteApiKey.trim()) {
+        setModelState('missing')
+        setModelMessage('OpenRouter API 키가 없습니다. 배포된 앱에서 OpenRouter를 쓰려면 키를 입력해 주세요.')
+        return
+      }
+      setInstalledModels([])
+      setModelState('ready')
+      setModelMessage(`OpenRouter API 준비됨: ${remoteModel}`)
       return
     }
 
@@ -270,7 +419,7 @@ function App() {
       setModelState('offline')
       setModelMessage('Ollama가 꺼져 있거나, 방금 모델 실행 중 서버가 내려갔습니다.')
     }
-  }, [activeModel, apiMode, remoteApiKey, remoteModel])
+  }, [activeModel, apiMode, geminiApiKey, geminiModel, remoteApiKey, remoteModel])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -292,147 +441,208 @@ function App() {
       ...current,
       [character.id]: current[character.id] || createOpening(character),
     }))
+    setCastByChat((current) => ({
+      ...current,
+      [character.id]: current[character.id] || [characterToCast(character)],
+    }))
     setDraft('')
     setTab('chats')
     window.setTimeout(() => inputRef.current?.focus(), 0)
   }
 
+  async function requestAnswer(nextMessages: ChatMessage[], character: Character) {
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 120000)
+    const systemText = buildSystemPrompt(character, castByChat[character.id] || [characterToCast(character)])
+
+    try {
+      if (apiMode === 'local') {
+        const response = await fetch('/ollama/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: activeModel,
+            stream: false,
+            options: { temperature: 0.84, top_p: 0.92 },
+            messages: [{ role: 'system', content: systemText }, ...openAiMessages(nextMessages)],
+          }),
+        })
+        if (!response.ok) throw new Error(`응답 오류 ${response.status}`)
+        return openAiText(await response.json())
+      }
+
+      if (apiMode === 'openrouter') {
+        if (!remoteApiKey.trim()) throw new Error('OpenRouter API 키가 없습니다.')
+        const response = await fetch(openRouterEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${remoteApiKey.trim()}`,
+            'HTTP-Referer': window.location.origin,
+            'X-Title': 'AI ChatBot',
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: remoteModel,
+            temperature: 0.84,
+            top_p: 0.92,
+            messages: [{ role: 'system', content: systemText }, ...openAiMessages(nextMessages)],
+          }),
+        })
+        if (!response.ok) throw new Error(`응답 오류 ${response.status}`)
+        return openAiText(await response.json())
+      }
+
+      if (!geminiApiKey.trim()) throw new Error('Gemini API 키가 없습니다.')
+      const response = await fetch(geminiEndpoint(geminiModel), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiApiKey.trim() },
+        signal: controller.signal,
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemText }] },
+          contents: geminiContents(nextMessages),
+          generationConfig: {
+            temperature: 0.84,
+            topP: 0.92,
+          },
+        }),
+      })
+      if (!response.ok) throw new Error(`응답 오류 ${response.status}`)
+      return geminiText(await response.json())
+    } finally {
+      window.clearTimeout(timeout)
+    }
+  }
+
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const trimmed = draft.trim()
-    if (!trimmed || isSending || !selectedCharacter) return
+    const parsed = parseSpeakerDraft(draft, castMembers)
+    if (!parsed.text || isSending || !selectedCharacter) return
 
-    const userMessage = newMessage('user', trimmed)
+    const userMessage = parsed.speaker ? newMessage('cast', parsed.text, parsed.speaker) : newMessage('user', parsed.text)
     const nextMessages = [...currentMessages, userMessage]
     setSessions((current) => ({ ...current, [selectedCharacter.id]: nextMessages }))
     setDraft('')
     setIsSending(true)
 
     try {
-      const controller = new AbortController()
-      const timeout = window.setTimeout(() => controller.abort(), 120000)
-      const apiMessages = [
-        { role: 'system', content: buildSystemPrompt(selectedCharacter) },
-        ...nextMessages
-          .filter((message) => message.sender !== 'system')
-          .map((message) => ({
-            role: message.sender === 'user' ? 'user' : 'assistant',
-            content: message.text,
-          })),
-      ]
-      const response =
-        apiMode === 'local'
-          ? await fetch('/ollama/api/chat', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              signal: controller.signal,
-              body: JSON.stringify({
-                model: activeModel,
-                stream: false,
-                options: { temperature: 0.84, top_p: 0.92 },
-                messages: apiMessages,
-              }),
-            })
-          : await fetch(openRouterEndpoint, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${remoteApiKey.trim()}`,
-                'HTTP-Referer': window.location.origin,
-                'X-Title': 'AI ChatBot',
-              },
-              signal: controller.signal,
-              body: JSON.stringify({
-                model: remoteModel,
-                temperature: 0.84,
-                top_p: 0.92,
-                messages: apiMessages,
-              }),
-            })
-      window.clearTimeout(timeout)
-
-      if (!response.ok) throw new Error(`응답 오류 ${response.status}`)
-      const data = await response.json()
-      const answer = (apiMode === 'local' ? data.message?.content : data.choices?.[0]?.message?.content)?.trim()
+      const answer = await requestAnswer(nextMessages, selectedCharacter)
       if (!answer) throw new Error('빈 답변')
-
       setSessions((current) => ({
         ...current,
         [selectedCharacter.id]: [...nextMessages, newMessage('assistant', answer)],
       }))
       setModelState('ready')
-      setModelMessage(`${activeModel} 모델이 정상 답변했습니다.`)
+      setModelMessage(`${apiMode === 'local' ? activeModel : apiMode === 'gemini' ? geminiModel : remoteModel} 모델이 정상 답변했습니다.`)
     } catch {
       const failure = [
         '모델 답변을 받지 못했습니다.',
-        `현재 연결 방식: ${apiMode === 'local' ? '로컬 Ollama' : '원격 OpenRouter'}`,
-        `현재 선택 모델: ${apiMode === 'local' ? activeModel : remoteModel}`,
+        `현재 연결 방식: ${apiMode === 'local' ? '로컬 Ollama' : apiMode === 'gemini' ? 'Gemini API' : 'OpenRouter'}`,
+        `현재 선택 모델: ${apiMode === 'local' ? activeModel : apiMode === 'gemini' ? geminiModel : remoteModel}`,
         apiMode === 'local'
           ? '32B 모델은 PC 메모리가 부족하면 Ollama가 내려갈 수 있습니다.'
-          : '원격 API 키, 모델 이름, 무료 사용 한도를 확인해 주세요.',
+          : 'API 키, 모델 이름, 무료 사용 한도를 확인해 주세요.',
       ].join('\n')
       setSessions((current) => ({
         ...current,
         [selectedCharacter.id]: [...nextMessages, newMessage('system', failure)],
       }))
       setModelState('error')
-      setModelMessage('답변 생성 중 연결이 끊겼습니다. 모델이 너무 무거울 수 있습니다.')
+      setModelMessage('답변 생성 중 연결이 끊겼습니다. 연결 설정을 확인해 주세요.')
     } finally {
       setIsSending(false)
       window.setTimeout(() => inputRef.current?.focus(), 0)
     }
   }
 
+  function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+      event.preventDefault()
+      event.currentTarget.form?.requestSubmit()
+    }
+  }
+
   async function testModelResponse() {
     setModelState('checking')
-    setModelMessage(`${apiMode === 'local' ? activeModel : remoteModel} 모델에 짧은 답변을 요청하는 중입니다.`)
+    setModelMessage(`${apiMode === 'local' ? activeModel : apiMode === 'gemini' ? geminiModel : remoteModel} 모델에 짧은 답변을 요청하는 중입니다.`)
     try {
-      if (apiMode === 'openrouter' && !remoteApiKey.trim()) {
-        throw new Error('API 키 없음')
-      }
-      const controller = new AbortController()
-      const timeout = window.setTimeout(() => controller.abort(), 90000)
-      const testMessages = [
-        { role: 'system', content: '한국어로 한 문장만 답하는 챗봇입니다.' },
-        { role: 'user', content: '정상적으로 답변되는지 짧게 말해줘.' },
-      ]
-      const response =
-        apiMode === 'local'
-          ? await fetch('/ollama/api/chat', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              signal: controller.signal,
-              body: JSON.stringify({
-                model: activeModel,
-                stream: false,
-                messages: testMessages,
-              }),
-            })
-          : await fetch(openRouterEndpoint, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${remoteApiKey.trim()}`,
-                'HTTP-Referer': window.location.origin,
-                'X-Title': 'AI ChatBot',
-              },
-              signal: controller.signal,
-              body: JSON.stringify({
-                model: remoteModel,
-                messages: testMessages,
-              }),
-            })
-      window.clearTimeout(timeout)
-      if (!response.ok) throw new Error('응답 오류')
-      const data = await response.json()
-      const answer = (apiMode === 'local' ? data.message?.content : data.choices?.[0]?.message?.content)?.trim()
+      const fakeCharacter = selectedCharacter || baseCharacters[0]
+      const answer = await requestAnswer([newMessage('user', '정상적으로 답변되는지 짧게 말해줘.')], fakeCharacter)
       if (!answer) throw new Error('빈 답변')
       setModelState('ready')
       setModelMessage(`답변 테스트 성공: ${answer.slice(0, 70)}`)
     } catch {
       setModelState('error')
-      setModelMessage('답변 테스트 실패. Ollama가 꺼졌거나 현재 모델이 이 PC에 너무 무거울 수 있습니다.')
+      setModelMessage('답변 테스트 실패. API 키, 모델 이름, 사용 한도 또는 로컬 Ollama 상태를 확인해 주세요.')
     }
+  }
+
+  async function suggestCastProfile() {
+    setCastHelper('Gemini로 인물 설정을 추천받는 중입니다.')
+    try {
+      if (!geminiApiKey.trim()) {
+        setCastHelper('Gemini API 키를 먼저 입력해 주세요.')
+        return
+      }
+      const prompt = [
+        '성인 로맨스 창작 채팅에 추가할 가상 인물 설정을 JSON으로 추천해 주세요.',
+        '모든 인물은 성인입니다.',
+        `희망 이름: ${castName || '랜덤'}`,
+        '형식: {"name":"이름","job":"직업","personality":"성격","details":"특징, 취미, 관계 시작점"}.',
+        '한국어로 작성하고 JSON 외 문장은 쓰지 마세요.',
+      ].join('\n')
+      const response = await fetch(geminiEndpoint(geminiModel), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiApiKey.trim() },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.95 },
+        }),
+      })
+      if (!response.ok) throw new Error('Gemini 응답 오류')
+      const text = geminiText(await response.json())
+      const jsonText = text.match(/\{[\s\S]*\}/)?.[0] || text
+      const parsed = JSON.parse(jsonText) as Partial<CastMember>
+      setCastName(parsed.name || castName)
+      setCastJob(parsed.job || '')
+      setCastPersonality(parsed.personality || '')
+      setCastDetails(parsed.details || '')
+      setCastHelper('추천 설정을 채웠습니다. 필요하면 수정한 뒤 추가하세요.')
+    } catch {
+      setCastHelper('추천 생성에 실패했습니다. Gemini API 키와 모델 이름을 확인해 주세요.')
+    }
+  }
+
+  function addCastMember(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!selectedCharacter || !castName.trim()) return
+    const member: CastMember = {
+      id: crypto.randomUUID(),
+      name: castName.trim(),
+      job: castJob.trim() || '새 인물',
+      personality: castPersonality.trim() || '사용자가 직접 추가한 인물',
+      details: castDetails.trim() || '아직 상세 설정이 없습니다.',
+      image: castImage.trim() || selectedCharacter.image,
+    }
+    setCastByChat((current) => ({
+      ...current,
+      [selectedCharacter.id]: [...(current[selectedCharacter.id] || [characterToCast(selectedCharacter)]), member],
+    }))
+    setAddCastOpen(false)
+    setCastName('')
+    setCastJob('')
+    setCastPersonality('')
+    setCastDetails('')
+    setCastImage('')
+    setCastHelper('')
+  }
+
+  function handleCastImageUpload(file?: File) {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setCastImage(String(reader.result || ''))
+    reader.readAsDataURL(file)
   }
 
   function createCharacter(event: FormEvent<HTMLFormElement>) {
@@ -471,11 +681,16 @@ function App() {
           </button>
           <div>
             <strong>{selectedCharacter.title}</strong>
-            <span className={modelState}>{isSending ? '답변 작성 중' : activeModel}</span>
+            <span className={modelState}>{isSending ? '답변 작성 중' : apiMode === 'gemini' ? geminiModel : apiMode === 'local' ? activeModel : remoteModel}</span>
           </div>
-          <button type="button" onClick={() => toggleFavorite(selectedCharacter.id)} aria-label="즐겨찾기">
-            {favorites.includes(selectedCharacter.id) ? '♥' : '♡'}
-          </button>
+          <div className="chat-header-actions">
+            <button type="button" onClick={() => setAddCastOpen(true)} aria-label="인물 추가">
+              ＋
+            </button>
+            <button type="button" onClick={() => toggleFavorite(selectedCharacter.id)} aria-label="즐겨찾기">
+              {favorites.includes(selectedCharacter.id) ? '♥' : '♡'}
+            </button>
+          </div>
         </header>
 
         <section className="profile-strip">
@@ -486,10 +701,27 @@ function App() {
           </div>
         </section>
 
+        <section className="cast-strip" aria-label="등장인물">
+          {castMembers.map((member) => (
+            <button key={member.id} type="button" onClick={() => setDraft(`@${member.name} `)}>
+              <img src={assetPath(member.image)} alt="" />
+              <span>@{member.name}</span>
+            </button>
+          ))}
+        </section>
+
         <section className="chat-log" aria-live="polite">
           {currentMessages.map((message) => (
             <article className={`bubble ${message.sender}`} key={message.id}>
-              <p>{message.text}</p>
+              {message.sender === 'cast' && (
+                <header>
+                  {message.speakerImage && <img src={assetPath(message.speakerImage)} alt="" />}
+                  <strong>@{message.speakerName}</strong>
+                </header>
+              )}
+              <p>
+                <MessageText text={message.text} />
+              </p>
               <time>{message.time}</time>
             </article>
           ))}
@@ -501,7 +733,7 @@ function App() {
         </section>
 
         <div className="quick-replies">
-          {['지금 무슨 생각해?', '조금 더 솔직하게 말해줘', '분위기를 이어가줘'].map((reply) => (
+          {['*잠깐 시선을 피한다*', '조금 더 솔직하게 말해줘', `@${castMembers[0]?.name || selectedCharacter.title} `].map((reply) => (
             <button key={reply} type="button" onClick={() => setDraft(reply)}>
               {reply}
             </button>
@@ -514,12 +746,56 @@ function App() {
             rows={2}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="캐릭터에게 말을 걸어보세요."
+            onKeyDown={handleComposerKeyDown}
+            placeholder="Enter 전송 · Shift+Enter 줄바꿈 · *상황* · @인물이름 대사"
           />
           <button type="submit" disabled={!draft.trim() || isSending}>
             전송
           </button>
         </form>
+
+        {addCastOpen && (
+          <section className="cast-modal" aria-label="인물 추가">
+            <button className="sheet-backdrop" type="button" onClick={() => setAddCastOpen(false)} aria-label="닫기"></button>
+            <form className="cast-modal-content" onSubmit={addCastMember}>
+              <h2>채팅에 인물 추가</h2>
+              <p>추가한 인물은 @이름으로 직접 말하게 할 수 있습니다.</p>
+              {castHelper && <div className="helper-message">{castHelper}</div>}
+              <label>
+                이름
+                <input value={castName} onChange={(event) => setCastName(event.target.value)} placeholder="예: 한도윤" />
+              </label>
+              <label>
+                직업/역할
+                <input value={castJob} onChange={(event) => setCastJob(event.target.value)} placeholder="예: 바텐더, 선배, 라이벌" />
+              </label>
+              <label>
+                성격
+                <input value={castPersonality} onChange={(event) => setCastPersonality(event.target.value)} placeholder="예: 다정하지만 질투가 많음" />
+              </label>
+              <label>
+                특징/관계/취미
+                <textarea rows={4} value={castDetails} onChange={(event) => setCastDetails(event.target.value)} />
+              </label>
+              <label>
+                사진 URL
+                <input value={castImage.startsWith('data:') ? '업로드한 이미지 사용 중' : castImage} onChange={(event) => setCastImage(event.target.value)} placeholder="https://..." />
+              </label>
+              <label>
+                내 사진 업로드
+                <input type="file" accept="image/*" onChange={(event) => handleCastImageUpload(event.target.files?.[0])} />
+              </label>
+              <div className="sheet-actions">
+                <button type="button" onClick={suggestCastProfile}>
+                  Gemini로 추천
+                </button>
+                <button type="submit" disabled={!castName.trim()}>
+                  인물 추가
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
       </main>
     )
   }
@@ -581,7 +857,7 @@ function App() {
           <section className="status-card">
             <span className={`dot ${modelState}`}></span>
             <div>
-              <strong>{modelState === 'ready' ? '모델 설치됨' : '모델 확인 필요'}</strong>
+              <strong>{modelState === 'ready' ? '모델 준비됨' : '모델 확인 필요'}</strong>
               <p>{modelMessage}</p>
             </div>
             <button type="button" onClick={checkModel}>
@@ -660,14 +936,17 @@ function App() {
             <p className={`model-message ${modelState}`}>{modelMessage}</p>
             <div className="mode-toggle" aria-label="연결 방식">
               <button className={apiMode === 'local' ? 'active' : ''} type="button" onClick={() => setApiMode('local')}>
-                로컬 Ollama
+                로컬
+              </button>
+              <button className={apiMode === 'gemini' ? 'active' : ''} type="button" onClick={() => setApiMode('gemini')}>
+                Gemini
               </button>
               <button className={apiMode === 'openrouter' ? 'active' : ''} type="button" onClick={() => setApiMode('openrouter')}>
-                원격 API
+                OpenRouter
               </button>
             </div>
 
-            {apiMode === 'local' ? (
+            {apiMode === 'local' && (
               <>
                 {modelOptions.map((model) => (
                   <button
@@ -684,7 +963,28 @@ function App() {
                 ))}
                 <div className="command-box">ollama run {activeModel}</div>
               </>
-            ) : (
+            )}
+
+            {apiMode === 'gemini' && (
+              <div className="remote-config">
+                <label>
+                  Gemini API 키
+                  <input
+                    type="password"
+                    value={geminiApiKey}
+                    onChange={(event) => setGeminiApiKey(event.target.value)}
+                    placeholder="Google AI Studio API 키"
+                  />
+                </label>
+                <label>
+                  Gemini 모델 이름
+                  <input value={geminiModel} onChange={(event) => setGeminiModel(event.target.value)} placeholder="gemma-4-31b-it" />
+                </label>
+                <p>Google AI Studio에서 받은 Gemini API 키를 넣으면 Gemma 4 31B IT 모델을 호출할 수 있습니다. 무료 한도와 정책은 Google 계정 상태에 따라 달라질 수 있습니다.</p>
+              </div>
+            )}
+
+            {apiMode === 'openrouter' && (
               <div className="remote-config">
                 <label>
                   OpenRouter API 키
@@ -696,12 +996,13 @@ function App() {
                   />
                 </label>
                 <label>
-                  원격 모델 이름
-                  <input value={remoteModel} onChange={(event) => setRemoteModel(event.target.value)} placeholder="openrouter/auto" />
+                  OpenRouter 모델 이름
+                  <input value={remoteModel} onChange={(event) => setRemoteModel(event.target.value)} placeholder="google/gemma-4-31b-it:free" />
                 </label>
-                <p>배포된 앱은 무료 서버에서 모델을 직접 돌리지 않습니다. 대신 OpenRouter 같은 원격 API 키를 넣으면 답변이 동작합니다.</p>
+                <p>OpenRouter 무료 모델을 쓰려면 모델 이름에 `:free`가 붙은 모델을 입력하세요.</p>
               </div>
             )}
+
             <button className="primary-action" type="button" onClick={checkModel}>
               연결 상태 확인
             </button>
@@ -716,7 +1017,7 @@ function App() {
         <section className="detail-sheet" aria-label="캐릭터 상세">
           <button className="sheet-backdrop" type="button" onClick={() => setDetailCharacter(null)} aria-label="닫기"></button>
           <div className="sheet-content">
-          <img src={assetPath(detailCharacter.image)} alt="" />
+            <img src={assetPath(detailCharacter.image)} alt="" />
             <button className="sheet-close" type="button" onClick={() => setDetailCharacter(null)}>
               ×
             </button>
