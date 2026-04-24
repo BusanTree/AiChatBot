@@ -341,6 +341,91 @@ function wrapNarration(text: string) {
   return cleaned ? `*${cleaned}*` : ''
 }
 
+function hasFinalConsonant(text: string) {
+  const hangul = text.match(/[가-힣]/g)
+  if (!hangul?.length) return false
+  const code = hangul[hangul.length - 1].charCodeAt(0) - 0xac00
+  return code >= 0 && code % 28 > 0
+}
+
+function withJosa(text: string, pair: '은/는' | '이/가' | '을/를') {
+  const final = hasFinalConsonant(text)
+  if (pair === '은/는') return `${text}${final ? '은' : '는'}`
+  if (pair === '이/가') return `${text}${final ? '이' : '가'}`
+  return `${text}${final ? '을' : '를'}`
+}
+
+function simpleCharacterName(name: string) {
+  return name.match(/^[가-힣]+/)?.[0] || name.split(/\s+/)[0] || name
+}
+
+function observerSentence(sentence: string, botLabel: string, botName: string) {
+  const trimmed = sentence.trim()
+  if (!trimmed || trimmed.includes(botLabel) || trimmed.includes(botName)) return trimmed
+
+  const base = trimmed.replace(/[.!?。]+$/g, '')
+  const rules: Array<[RegExp, string]> = [
+    [/기분이야$/, `기분을 느끼는 ${botLabel}이다`],
+    [/하얘져$/, `하얘지는 ${botLabel}이다`],
+    [/붙잡아$/, `붙잡는 ${botLabel}이다`],
+    [/바라봐$/, `바라보는 ${botLabel}이다`],
+    [/고개를 끄덕여$/, `고개를 끄덕이는 ${botLabel}이다`],
+    [/미소 지어$/, `미소 짓는 ${botLabel}이다`],
+    [/떨려$/, `떨리는 ${botLabel}이다`],
+    [/느껴$/, `느끼는 ${botLabel}이다`],
+    [/무너져$/, `무너지는 ${botLabel}이다`],
+    [/흔들려$/, `흔들리는 ${botLabel}이다`],
+    [/피해$/, `피하는 ${botLabel}이다`],
+    [/감아$/, `감는 ${botLabel}이다`],
+  ]
+
+  for (const [pattern, replacement] of rules) {
+    if (pattern.test(base)) return `${base.replace(pattern, replacement)}.`
+  }
+
+  if (/(기분|마음|겁|머릿속|심장|목소리|눈빛|표정|손끝|고개|옷소매|시선|숨|입술|눈가)/.test(base)) {
+    return `${base} ${botLabel}이다.`
+  }
+
+  return trimmed
+}
+
+function normalizeNarrationPerspective(text: string, character: Character, nickname: string) {
+  const userLabel = `${displayNickname(nickname)}(유저)`
+  const botName = simpleCharacterName(character.title)
+  const botLabel = `${botName}(챗봇)`
+  const userSubject = withJosa(userLabel, '이/가')
+  const userTopic = withJosa(userLabel, '은/는')
+  const userObject = withJosa(userLabel, '을/를')
+  const botSubject = withJosa(botLabel, '이/가')
+  const botTopic = withJosa(botLabel, '은/는')
+  const botObject = withJosa(botLabel, '을/를')
+
+  const pronounFixed = text
+    .replace(/네가|너가|당신이/g, userSubject)
+    .replace(/너는|당신은/g, userTopic)
+    .replace(/너를|당신을/g, userObject)
+    .replace(/네게|너에게|너한테|당신에게/g, `${userLabel}에게`)
+    .replace(/너의|당신의/g, `${userLabel}의`)
+    .replace(/네\s+/g, `${userLabel}의 `)
+    .replace(/내가/g, botSubject)
+    .replace(/나는/g, botTopic)
+    .replace(/난(?=\s|[,.!?。])/g, botTopic)
+    .replace(/나를/g, botObject)
+    .replace(/날(?=\s|[,.!?。])/g, botObject)
+    .replace(/나에게|나한테/g, `${botLabel}에게`)
+    .replace(/나의/g, `${botLabel}의`)
+    .replace(/내\s+/g, `${botLabel}의 `)
+
+  const sentences = pronounFixed.match(/[^.!?。]+[.!?。]?/g)
+  if (!sentences) return pronounFixed.trim()
+  return sentences.map((sentence) => observerSentence(sentence, botLabel, botName)).join(' ').trim()
+}
+
+function normalizeReplyNarration(text: string, character: Character, nickname: string) {
+  return text.replace(/\*([^*]+)\*/g, (_, narration: string) => wrapNarration(normalizeNarrationPerspective(narration, character, nickname)))
+}
+
 function removeLeadingMetaEcho(line: string) {
   const firstKorean = line.search(/[가-힣]/)
   if (firstKorean <= 0) return line
@@ -373,7 +458,7 @@ function repairNarrationStars(line: string) {
   return wrapNarration(line.replace(/\*+$/g, ''))
 }
 
-function stripModelReasoning(raw: string) {
+function stripModelReasoning(raw: string, character: Character, nickname: string) {
   const labeledParts: string[] = []
   const cleanLines: string[] = []
   const taggedReply = raw.match(/<reply>([\s\S]*?)<\/reply>/i)?.[1]
@@ -428,7 +513,7 @@ function stripModelReasoning(raw: string) {
     paragraphs[0] = wrapNarration(first)
   }
 
-  return paragraphs.join('\n\n').trim()
+  return normalizeReplyNarration(paragraphs.join('\n\n').trim(), character, nickname)
 }
 
 function galleryPosition(photo: CharacterPhoto) {
@@ -493,6 +578,10 @@ function buildSystemPrompt(character: Character, castMembers: CastMember[], nick
     'User says, Character, Character Traits, Format, Setting, Action:, Dialogue:, Yes/No 같은 라벨을 출력하지 마세요.',
     '최종 답변은 <reply>와 </reply> 사이에만 작성하세요. 태그 밖에는 아무 문장도 쓰지 마세요.',
     '최종 답변만 출력하세요. 상황/감정 묘사는 *별표 안*에 쓰고, 대사는 별표 밖에 쓰세요.',
+    `별표 안 상황 묘사는 관찰자 시점의 3인칭 문장으로 쓰세요. "나/내/네/너/당신" 같은 1인칭·2인칭 표현을 쓰지 마세요.`,
+    `별표 안에서 사용자는 "${userName}(유저)"로, 기본 캐릭터는 "${simpleCharacterName(character.title)}(챗봇)"으로 지칭하세요.`,
+    `나쁜 예: *네 차가운 말투에 심장이 툭 떨어져 나가는 기분이야.*`,
+    `좋은 예: *${userName}(유저)의 차가운 말투에 심장이 툭 떨어져 나가는 기분을 느끼는 ${simpleCharacterName(character.title)}(챗봇)이다.*`,
     `사용자 닉네임: ${userName}`,
     `사용자를 Guest나 게스트라고 부르지 말고 반드시 "${userName}" 또는 자연스러운 2인칭으로 부르세요.`,
     `기본 작품 또는 캐릭터: ${character.title}`,
@@ -916,7 +1005,7 @@ function App() {
           }),
         })
         if (!response.ok) throw new Error(`응답 오류 ${response.status}`)
-        return stripModelReasoning(openAiText(await response.json()))
+        return stripModelReasoning(openAiText(await response.json()), character, nickname)
       }
 
       if (apiMode === 'openrouter') {
@@ -938,7 +1027,7 @@ function App() {
           }),
         })
         if (!response.ok) throw new Error(`응답 오류 ${response.status}`)
-        return stripModelReasoning(openAiText(await response.json()))
+        return stripModelReasoning(openAiText(await response.json()), character, nickname)
       }
 
       if (!geminiApiKey.trim()) throw new Error('Gemini API 키가 없습니다.')
@@ -956,7 +1045,7 @@ function App() {
         }),
       })
       if (!response.ok) throw new Error(`응답 오류 ${response.status}`)
-      return stripModelReasoning(geminiText(await response.json()))
+      return stripModelReasoning(geminiText(await response.json()), character, nickname)
     } finally {
       window.clearTimeout(timeout)
     }
