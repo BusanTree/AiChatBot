@@ -902,6 +902,13 @@ img {
   font-weight: 850;
 }
 
+.cast-strip button.active {
+  border-color: rgba(255, 196, 106, 0.6);
+  background: #382913;
+  color: #ffe4b7;
+  box-shadow: 0 8px 24px rgba(255, 180, 80, 0.12);
+}
+
 .cast-strip img {
   width: 26px;
   height: 26px;
@@ -956,8 +963,9 @@ img {
 .bubble.cast {
   align-self: flex-end;
   border-bottom-right-radius: 5px;
-  background: #353040;
-  box-shadow: 0 10px 24px rgba(122, 69, 255, 0.12);
+  border: 1px solid rgba(255, 196, 106, 0.2);
+  background: linear-gradient(145deg, #3b2b18, #2b2431);
+  box-shadow: 0 10px 24px rgba(255, 170, 70, 0.12);
 }
 
 .bubble.cast header {
@@ -965,7 +973,7 @@ img {
   align-items: center;
   gap: 7px;
   margin-bottom: 6px;
-  color: #d7cffd;
+  color: #ffe1ad;
   font-size: 12px;
 }
 
@@ -1027,10 +1035,74 @@ img {
 .mobile-composer {
   display: grid;
   grid-template-columns: 1fr 66px;
+  align-items: end;
   gap: 8px;
   padding: 10px 10px 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
   background: #121216;
+}
+
+.composer-box {
+  display: grid;
+  gap: 7px;
+  border: 1px solid transparent;
+  border-radius: 15px;
+  background: transparent;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.composer-box.speaking-as {
+  padding: 8px;
+  border-color: rgba(255, 196, 106, 0.38);
+  background: rgba(255, 180, 80, 0.07);
+  box-shadow: 0 12px 30px rgba(255, 170, 70, 0.08);
+}
+
+.composer-box.mentioning {
+  padding: 8px;
+  border-color: rgba(255, 111, 136, 0.34);
+  background: rgba(255, 111, 136, 0.07);
+}
+
+.speaker-mode {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 8px;
+  align-items: center;
+  color: #ffe1ad;
+}
+
+.speaker-mode.warning {
+  grid-template-columns: 1fr;
+  color: #ffb8c5;
+}
+
+.speaker-mode img {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.speaker-mode strong,
+.speaker-mode span {
+  display: block;
+}
+
+.speaker-mode strong {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.speaker-mode span {
+  margin-top: 2px;
+  color: rgba(255, 235, 200, 0.72);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.speaker-mode.warning span {
+  color: rgba(255, 210, 218, 0.7);
 }
 
 .mobile-composer textarea {

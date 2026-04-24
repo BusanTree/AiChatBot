@@ -55,6 +55,9 @@ type CastMember = {
   name: string
   job: string
   personality: string
+  traits?: string
+  relationship?: string
+  hobbies?: string
   details: string
   image: string
 }
@@ -455,6 +458,9 @@ function characterToCast(character: Character): CastMember {
     name: character.title,
     job: character.genre,
     personality: character.tone,
+    traits: character.note,
+    relationship: character.preference,
+    hobbies: character.hobbies,
     details: character.intro,
     image: character.image,
   }
@@ -470,7 +476,15 @@ function createOpening(character: Character, nickname = ''): ChatMessage[] {
 function buildSystemPrompt(character: Character, castMembers: CastMember[], nickname: string) {
   const userName = displayNickname(nickname)
   const castText = castMembers
-    .map((member) => `- ${member.name}: ${member.job}. 성격: ${member.personality}. 설정: ${member.details}`)
+    .map((member) => {
+      const extra = [
+        member.traits ? `특징: ${member.traits}` : '',
+        member.relationship ? `관계: ${member.relationship}` : '',
+        member.hobbies ? `취미: ${member.hobbies}` : '',
+        member.details ? `추가 설정: ${member.details}` : '',
+      ].filter(Boolean).join('. ')
+      return `- ${member.name}: ${member.job}. 성격: ${member.personality}. ${extra}`
+    })
     .join('\n')
 
   return [
@@ -640,6 +654,40 @@ function Icon({ name }: { name: IconName }) {
   )
 }
 
+function normalizeMentionName(value: string) {
+  return value.replace(/\s/g, '').toLowerCase()
+}
+
+function mentionAliases(member: CastMember) {
+  const firstWord = member.name.split(/\s+/)[0]
+  const koreanPrefix = member.name.match(/^[가-힣]+/)?.[0]
+  return Array.from(new Set([member.name, firstWord, koreanPrefix].filter((alias): alias is string => Boolean(alias && alias.length >= 2))))
+}
+
+function mentionRemainderForAlias(body: string, alias: string) {
+  const expected = normalizeMentionName(alias)
+  let collected = ''
+
+  for (let index = 0; index < body.length; index += 1) {
+    const character = body[index]
+    if (/\s/.test(character)) continue
+    collected += character.toLowerCase()
+    if (!expected.startsWith(collected)) return null
+    if (collected === expected) return body.slice(index + 1)
+  }
+
+  return collected === expected ? '' : null
+}
+
+function mentionRemainder(body: string, member: CastMember) {
+  for (const alias of mentionAliases(member).sort((a, b) => b.length - a.length)) {
+    const rest = mentionRemainderForAlias(body, alias)
+    if (rest !== null) return rest
+  }
+
+  return null
+}
+
 function parseSpeakerDraft(text: string, castMembers: CastMember[]) {
   const trimmed = text.trim()
   if (!trimmed.startsWith('@')) return { text: trimmed }
@@ -647,16 +695,17 @@ function parseSpeakerDraft(text: string, castMembers: CastMember[]) {
   const body = trimmed.slice(1)
   const exactSpeaker = [...castMembers]
     .sort((a, b) => b.name.length - a.name.length)
-    .find((member) => body.startsWith(`${member.name} `) || body.startsWith(`${member.name}\n`))
+    .find((member) => mentionRemainder(body, member) !== null)
 
   if (exactSpeaker) {
-    return { text: body.slice(exactSpeaker.name.length).trim(), speaker: exactSpeaker }
+    const rest = mentionRemainder(body, exactSpeaker) || ''
+    return { text: rest.trim(), speaker: exactSpeaker }
   }
 
   const match = trimmed.match(/^@([^\s]+)\s+([\s\S]+)/)
   if (!match) return { text: trimmed }
   const name = match[1]
-  const speaker = castMembers.find((member) => member.name === name || member.name.replace(/\s/g, '') === name)
+  const speaker = castMembers.find((member) => mentionAliases(member).some((alias) => normalizeMentionName(alias) === normalizeMentionName(name)))
   return speaker ? { text: match[2].trim(), speaker } : { text: trimmed }
 }
 
@@ -726,6 +775,9 @@ function App() {
   const [castName, setCastName] = useState('')
   const [castJob, setCastJob] = useState('')
   const [castPersonality, setCastPersonality] = useState('')
+  const [castTraits, setCastTraits] = useState('')
+  const [castRelationship, setCastRelationship] = useState('')
+  const [castHobbies, setCastHobbies] = useState('')
   const [castDetails, setCastDetails] = useState('')
   const [castImage, setCastImage] = useState('')
   const [castHelper, setCastHelper] = useState('')
@@ -745,9 +797,12 @@ function App() {
   }, [activeCategory, characters, query, rankTab])
 
   const currentMessages = selectedCharacter ? sessions[selectedCharacter.id] || createOpening(selectedCharacter, nickname) : []
-  const castMembers = selectedCharacter
-    ? castByChat[selectedCharacter.id] || [characterToCast(selectedCharacter)]
-    : []
+  const castMembers = useMemo(() => {
+    if (!selectedCharacter) return []
+    return castByChat[selectedCharacter.id] || [characterToCast(selectedCharacter)]
+  }, [castByChat, selectedCharacter])
+  const draftSpeaker = useMemo(() => parseSpeakerDraft(draft, castMembers), [castMembers, draft])
+  const mentionStarted = draft.trimStart().startsWith('@')
   const chattedCharacters = characters.filter((character) => sessions[character.id]?.some((message) => message.sender === 'user' || message.sender === 'cast'))
 
   useEffect(() => {
@@ -837,6 +892,11 @@ function App() {
     window.setTimeout(() => inputRef.current?.focus(), 0)
   }
 
+  function startSpeakingAs(member: CastMember) {
+    setDraft(`@${member.name} `)
+    window.setTimeout(() => inputRef.current?.focus(), 0)
+  }
+
   async function requestAnswer(nextMessages: ChatMessage[], character: Character) {
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 120000)
@@ -904,7 +964,7 @@ function App() {
 
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const parsed = parseSpeakerDraft(draft, castMembers)
+    const parsed = draftSpeaker
     if (!parsed.text || isSending || !selectedCharacter) return
 
     const userMessage = parsed.speaker ? newMessage('cast', parsed.text, parsed.speaker) : newMessage('user', parsed.text)
@@ -966,17 +1026,17 @@ function App() {
   }
 
   async function suggestCastProfile() {
-    setCastHelper('Gemini로 인물 설정을 추천받는 중입니다.')
+    setCastHelper('AI가 인물 설정을 추천하는 중입니다.')
     try {
       if (!geminiApiKey.trim()) {
-        setCastHelper('Gemini API 키를 먼저 입력해 주세요.')
+        setCastHelper('AI 추천을 쓰려면 API 키를 먼저 입력해 주세요.')
         return
       }
       const prompt = [
         '성인 로맨스 창작 채팅에 추가할 가상 인물 설정을 JSON으로 추천해 주세요.',
         '모든 인물은 성인입니다.',
         `희망 이름: ${castName || '랜덤'}`,
-        '형식: {"name":"이름","job":"직업","personality":"성격","details":"특징, 취미, 관계 시작점"}.',
+        '형식: {"name":"이름","job":"직업","personality":"성격","traits":"특징","relationship":"현재 채팅 속 관계","hobbies":"취미","details":"추가 설정"}.',
         '한국어로 작성하고 JSON 외 문장은 쓰지 마세요.',
       ].join('\n')
       const response = await fetch(geminiEndpoint(geminiModel), {
@@ -994,10 +1054,13 @@ function App() {
       setCastName(parsed.name || castName)
       setCastJob(parsed.job || '')
       setCastPersonality(parsed.personality || '')
+      setCastTraits(parsed.traits || '')
+      setCastRelationship(parsed.relationship || '')
+      setCastHobbies(parsed.hobbies || '')
       setCastDetails(parsed.details || '')
       setCastHelper('추천 설정을 채웠습니다. 필요하면 수정한 뒤 추가하세요.')
     } catch {
-      setCastHelper('추천 생성에 실패했습니다. Gemini API 키와 모델 이름을 확인해 주세요.')
+      setCastHelper('AI 추천에 실패했습니다. API 키와 모델 이름을 확인해 주세요.')
     }
   }
 
@@ -1009,6 +1072,9 @@ function App() {
       name: castName.trim(),
       job: castJob.trim() || '새 인물',
       personality: castPersonality.trim() || '사용자가 직접 추가한 인물',
+      traits: castTraits.trim(),
+      relationship: castRelationship.trim(),
+      hobbies: castHobbies.trim(),
       details: castDetails.trim() || '아직 상세 설정이 없습니다.',
       image: castImage.trim() || selectedCharacter.image,
     }
@@ -1020,6 +1086,9 @@ function App() {
     setCastName('')
     setCastJob('')
     setCastPersonality('')
+    setCastTraits('')
+    setCastRelationship('')
+    setCastHobbies('')
     setCastDetails('')
     setCastImage('')
     setCastHelper('')
@@ -1096,7 +1165,7 @@ function App() {
 
         <section className="cast-strip" aria-label="등장인물">
           {castMembers.map((member) => (
-            <button key={member.id} type="button" onClick={() => setDraft(`@${member.name} `)}>
+            <button className={draftSpeaker.speaker?.id === member.id ? 'active' : ''} key={member.id} type="button" onClick={() => startSpeakingAs(member)}>
               <img src={assetPath(member.image)} alt="" />
               <span>@{member.name}</span>
             </button>
@@ -1134,15 +1203,33 @@ function App() {
         </div>
 
         <form className="mobile-composer" onSubmit={sendMessage}>
-          <textarea
-            ref={inputRef}
-            rows={2}
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={handleComposerKeyDown}
-            placeholder="메시지를 입력하세요"
-          />
-          <button type="submit" disabled={!draft.trim() || isSending}>
+          <div className={`composer-box ${draftSpeaker.speaker ? 'speaking-as' : mentionStarted ? 'mentioning' : ''}`}>
+            {draftSpeaker.speaker ? (
+              <div className="speaker-mode">
+                <img src={assetPath(draftSpeaker.speaker.image)} alt="" />
+                <div>
+                  <strong>@{draftSpeaker.speaker.name}의 말로 입력 중</strong>
+                  <span>{draftSpeaker.text ? '이 대사는 해당 인물의 채팅으로 전송됩니다.' : '이름 뒤에 대사를 이어서 입력하세요.'}</span>
+                </div>
+              </div>
+            ) : mentionStarted ? (
+              <div className="speaker-mode warning">
+                <div>
+                  <strong>등록된 인물 이름을 찾지 못했어요</strong>
+                  <span>아래 인물 버튼을 누르면 @이름이 정확히 입력됩니다.</span>
+                </div>
+              </div>
+            ) : null}
+            <textarea
+              ref={inputRef}
+              rows={2}
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={handleComposerKeyDown}
+              placeholder="메시지를 입력하세요"
+            />
+          </div>
+          <button type="submit" disabled={!draftSpeaker.text || isSending}>
             <Icon name="send" />
             <span>전송</span>
           </button>
@@ -1168,8 +1255,20 @@ function App() {
                 <input value={castPersonality} onChange={(event) => setCastPersonality(event.target.value)} placeholder="예: 다정하지만 질투가 많음" />
               </label>
               <label>
-                특징/관계/취미
-                <textarea rows={4} value={castDetails} onChange={(event) => setCastDetails(event.target.value)} />
+                특징
+                <textarea rows={2} value={castTraits} onChange={(event) => setCastTraits(event.target.value)} placeholder="예: 말투, 분위기, 숨기는 점" />
+              </label>
+              <label>
+                관계
+                <textarea rows={2} value={castRelationship} onChange={(event) => setCastRelationship(event.target.value)} placeholder="예: 주인공의 전 애인, 오래된 친구, 라이벌" />
+              </label>
+              <label>
+                취미
+                <input value={castHobbies} onChange={(event) => setCastHobbies(event.target.value)} placeholder="예: 야경 산책, 와인, 음악" />
+              </label>
+              <label>
+                추가 설정
+                <textarea rows={3} value={castDetails} onChange={(event) => setCastDetails(event.target.value)} placeholder="대화에 꼭 반영하고 싶은 내용을 적어주세요." />
               </label>
               <label>
                 사진 URL
@@ -1191,7 +1290,7 @@ function App() {
               <div className="sheet-actions">
                 <button type="button" onClick={suggestCastProfile}>
                   <Icon name="sparkles" />
-                  Gemini로 추천
+                  AI로 추천
                 </button>
                 <button type="submit" disabled={!castName.trim()}>
                   인물 추가
