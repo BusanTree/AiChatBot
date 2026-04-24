@@ -230,6 +230,67 @@ function personalize(text: string, nickname: string) {
   return text.replace(/Guest|게스트/g, displayNickname(nickname))
 }
 
+function wrapNarration(text: string) {
+  const cleaned = text.trim().replace(/^["“]|["”]$/g, '').replace(/^\*|\*$/g, '')
+  return cleaned ? `*${cleaned}*` : ''
+}
+
+function stripModelReasoning(raw: string) {
+  const labeledParts: string[] = []
+  const cleanLines: string[] = []
+  const metaPrefix =
+    /^(User says|Character(?: Traits)?|Format|The user's|Given|Setting|Reasoning|Analysis|Plan|Response|Output|Hyun-ji|Park Hyun-ji|Adult creative chatbot\?|Character traits maintained\?|Format followed\?|No parentheses\?)/i
+
+  raw
+    .replace(/\r\n/g, '\n')
+    .replace(/```[\s\S]*?```/g, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .forEach((originalLine) => {
+      const line = originalLine
+        .replace(/^(Adult creative chatbot\?|Character traits maintained\?|Format followed\?|No parentheses\?)\s*(Yes|No)\.?\s*/i, '')
+        .trim()
+
+      if (!line || /^(Yes|No)\.?$/i.test(line)) return
+
+      const action = line.match(/^(Action|Emotion|Narration|Description)\s*:\s*(.+)$/i)
+      if (action) {
+        const wrapped = wrapNarration(action[2])
+        if (wrapped) labeledParts.push(wrapped)
+        return
+      }
+
+      const dialogue = line.match(/^Dialogue\s*:\s*(.+)$/i)
+      if (dialogue) {
+        const text = dialogue[1].trim().replace(/^["“]|["”]$/g, '')
+        if (text) labeledParts.push(text)
+        return
+      }
+
+      if (metaPrefix.test(line)) return
+      cleanLines.push(line)
+    })
+
+  const source = cleanLines.length > 0 ? cleanLines : labeledParts
+  const unique = source.filter((line, index) => {
+    const normalized = line.replace(/\s+/g, ' ').replace(/^\*|\*$/g, '').trim()
+    return source.findIndex((item) => item.replace(/\s+/g, ' ').replace(/^\*|\*$/g, '').trim() === normalized) === index
+  })
+
+  const paragraphs = unique.join('\n\n').split(/\n{2,}/).map((part) => part.trim()).filter(Boolean)
+  const first = paragraphs[0]
+  if (
+    first &&
+    paragraphs.length > 1 &&
+    !first.startsWith('*') &&
+    /(시선|눈빛|표정|미소|손끝|숨|고개|찻잔|바라본다|내려놓|웃는다|앉|기대|돌린다|멈춘다|떨며|띤다)/.test(first)
+  ) {
+    paragraphs[0] = wrapNarration(first)
+  }
+
+  return paragraphs.join('\n\n').trim()
+}
+
 function galleryPosition(photo: CharacterPhoto) {
   const x = photo.col === 0 ? 0 : photo.col === 1 ? 50 : 100
   const y = photo.row === 0 ? 0 : photo.row === 5 ? 100 : photo.row * 20
@@ -277,6 +338,9 @@ function buildSystemPrompt(character: Character, castMembers: CastMember[], nick
 
   return [
     '당신은 한국어로 자연스럽게 대화하는 성인용 창작 챗봇입니다.',
+    '절대 사고 과정, 분석, 계획, 체크리스트, 영어 메타 설명을 출력하지 마세요.',
+    'User says, Character, Character Traits, Format, Setting, Action:, Dialogue:, Yes/No 같은 라벨을 출력하지 마세요.',
+    '최종 답변만 출력하세요. 상황/감정 묘사는 *별표 안*에 쓰고, 대사는 별표 밖에 쓰세요.',
     `사용자 닉네임: ${userName}`,
     `사용자를 Guest나 게스트라고 부르지 말고 반드시 "${userName}" 또는 자연스러운 2인칭으로 부르세요.`,
     `기본 작품 또는 캐릭터: ${character.title}`,
@@ -653,7 +717,7 @@ function App() {
           }),
         })
         if (!response.ok) throw new Error(`응답 오류 ${response.status}`)
-        return openAiText(await response.json())
+        return stripModelReasoning(openAiText(await response.json()))
       }
 
       if (apiMode === 'openrouter') {
@@ -675,7 +739,7 @@ function App() {
           }),
         })
         if (!response.ok) throw new Error(`응답 오류 ${response.status}`)
-        return openAiText(await response.json())
+        return stripModelReasoning(openAiText(await response.json()))
       }
 
       if (!geminiApiKey.trim()) throw new Error('Gemini API 키가 없습니다.')
@@ -693,7 +757,7 @@ function App() {
         }),
       })
       if (!response.ok) throw new Error(`응답 오류 ${response.status}`)
-      return geminiText(await response.json())
+      return stripModelReasoning(geminiText(await response.json()))
     } finally {
       window.clearTimeout(timeout)
     }
@@ -1242,6 +1306,7 @@ function App() {
             <div className="sheet-copy">
               <div className="tag-line">#{detailCharacter.tags.join(' #')}</div>
               <p className="detail-intro">{personalize(detailCharacter.intro, nickname)}</p>
+              <h2 className="detail-section-title">캐릭터 특징</h2>
               <dl className="character-profile-grid">
                 <div>
                   <dt>직업/역할</dt>

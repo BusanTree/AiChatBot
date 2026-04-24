@@ -509,9 +509,9 @@ img {
 }
 
 .character-detail-card {
-  width: min(calc(100% - 24px), 456px);
-  max-height: 88svh;
-  margin: 0 auto 12px;
+  width: min(calc(100% - 44px), 420px);
+  max-height: 76svh;
+  margin: 0 auto 26px;
   overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 24px;
@@ -529,17 +529,17 @@ img {
 
 .detail-hero {
   display: grid;
-  grid-template-columns: 104px 1fr;
-  gap: 13px;
+  grid-template-columns: 82px 1fr;
+  gap: 11px;
   align-items: end;
-  padding: 14px 46px 12px 14px;
+  padding: 12px 44px 10px 12px;
   background: linear-gradient(135deg, #20212b, #15151a 68%);
 }
 
 .detail-hero img {
-  width: 104px;
-  height: 138px;
-  border-radius: 16px;
+  width: 82px;
+  height: 108px;
+  border-radius: 14px;
   object-fit: cover;
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
 }
@@ -547,8 +547,8 @@ img {
 .detail-hero span {
   display: inline-flex;
   width: fit-content;
-  margin-bottom: 8px;
-  padding: 5px 9px;
+  margin-bottom: 6px;
+  padding: 4px 8px;
   border-radius: 999px;
   background: rgba(122, 69, 255, 0.16);
   color: #cfbdff;
@@ -562,8 +562,8 @@ img {
 }
 
 .detail-hero h1 {
-  margin-bottom: 7px;
-  font-size: 22px;
+  margin-bottom: 5px;
+  font-size: 20px;
   line-height: 1.15;
 }
 
@@ -572,14 +572,14 @@ img {
   overflow: hidden;
   color: #d9dbe3;
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.4;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
 }
 
 .character-detail-card .sheet-copy {
   margin-top: 0;
-  padding: 14px;
+  padding: 12px;
 }
 
 .tag-line {
@@ -592,22 +592,29 @@ img {
 }
 
 .detail-intro {
-  padding: 12px;
+  padding: 10px;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 14px;
   background: #101116;
 }
 
+.detail-section-title {
+  margin: 10px 0 7px;
+  color: #f4f5fa;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
 .character-profile-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin: 10px 0 0;
+  gap: 7px;
+  margin: 8px 0 0;
 }
 
 .character-profile-grid div {
   min-width: 0;
-  padding: 10px;
+  padding: 9px;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 13px;
   background: #1b1c23;
@@ -630,21 +637,25 @@ img {
 }
 
 .character-profile-grid dd {
+  display: -webkit-box;
+  overflow: hidden;
   color: #eef0f6;
   font-size: 12px;
-  line-height: 1.42;
+  line-height: 1.38;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .photo-gallery {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-top: 10px;
+  gap: 7px;
+  margin-top: 8px;
 }
 
 .gallery-thumb {
   position: relative;
-  min-height: 104px;
+  min-height: 76px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
