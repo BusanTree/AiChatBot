@@ -1128,6 +1128,16 @@ function parseSuggestions(raw: string) {
     .slice(0, 3)
 }
 
+function parseJsonObject(raw: string) {
+  const withoutBlocks = raw
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/```(?:json)?/gi, '')
+    .replace(/```/g, '')
+    .trim()
+  const jsonText = withoutBlocks.match(/\{[\s\S]*\}/)?.[0] || withoutBlocks
+  return JSON.parse(jsonText) as Partial<CastMember>
+}
+
 function fallbackSuggestions(character: Character, castMembers: CastMember[], nickname: string, pageIndex: number) {
   const userName = displayNickname(nickname)
   const botName = simpleCharacterName(character.title)
@@ -1210,6 +1220,7 @@ function App() {
   const [castDetails, setCastDetails] = useState('')
   const [castImage, setCastImage] = useState('')
   const [castHelper, setCastHelper] = useState('')
+  const [isCastSuggesting, setIsCastSuggesting] = useState(false)
   const [suggestionPages, setSuggestionPages] = useState<SuggestionPage[]>([])
   const [activeSuggestionPage, setActiveSuggestionPage] = useState(0)
   const [isSuggesting, setIsSuggesting] = useState(false)
@@ -1601,32 +1612,90 @@ function App() {
     showNextSuggestions()
   }
 
-  async function suggestCastProfile() {
-    setCastHelper('AI가 인물 설정을 추천하는 중입니다.')
+  async function requestCastProfileSuggestion(prompt: string) {
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 120000)
+
     try {
-      if (!geminiApiKey.trim()) {
-        setCastHelper('AI 추천을 쓰려면 API 키를 먼저 입력해 주세요.')
-        return
+      if (apiMode === 'local') {
+        const response = await fetch('/ollama/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: activeModel,
+            stream: false,
+            options: { temperature: 0.9, top_p: 0.95 },
+            messages: [
+              { role: 'system', content: '가상 인물 설정 JSON 객체 하나만 출력하세요. 설명은 쓰지 마세요.' },
+              { role: 'user', content: prompt },
+            ],
+          }),
+        })
+        if (!response.ok) throw new Error(`로컬 추천 응답 오류 ${response.status}`)
+        return openAiText(await response.json())
       }
-      const prompt = [
-        '성인 로맨스 창작 채팅에 추가할 가상 인물 설정을 JSON으로 추천해 주세요.',
-        '모든 인물은 성인입니다.',
-        `희망 이름: ${castName || '랜덤'}`,
-        '형식: {"name":"이름","job":"직업","personality":"성격","traits":"특징","relationship":"현재 채팅 속 관계","hobbies":"취미","details":"추가 설정"}.',
-        '한국어로 작성하고 JSON 외 문장은 쓰지 마세요.',
-      ].join('\n')
+
+      if (apiMode === 'openrouter') {
+        if (!remoteApiKey.trim()) throw new Error('OpenRouter API 키가 없습니다.')
+        const response = await fetch(openRouterEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${remoteApiKey.trim()}`,
+            'HTTP-Referer': window.location.origin,
+            'X-Title': 'AI ChatBot',
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: remoteModel,
+            temperature: 0.9,
+            top_p: 0.95,
+            messages: [
+              { role: 'system', content: '가상 인물 설정 JSON 객체 하나만 출력하세요. 설명은 쓰지 마세요.' },
+              { role: 'user', content: prompt },
+            ],
+          }),
+        })
+        if (!response.ok) throw new Error(`OpenRouter 추천 응답 오류 ${response.status}`)
+        return openAiText(await response.json())
+      }
+
+      if (!geminiApiKey.trim()) throw new Error('Gemini API 키가 없습니다.')
       const response = await fetch(geminiEndpoint(geminiModel), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiApiKey.trim() },
+        signal: controller.signal,
         body: JSON.stringify({
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.95 },
+          generationConfig: { temperature: 0.9, topP: 0.95 },
         }),
       })
-      if (!response.ok) throw new Error('Gemini 응답 오류')
-      const text = geminiText(await response.json())
-      const jsonText = text.match(/\{[\s\S]*\}/)?.[0] || text
-      const parsed = JSON.parse(jsonText) as Partial<CastMember>
+      if (!response.ok) throw new Error(`Gemini 추천 응답 오류 ${response.status}`)
+      return geminiText(await response.json())
+    } finally {
+      window.clearTimeout(timeout)
+    }
+  }
+
+  async function suggestCastProfile() {
+    if (isCastSuggesting) return
+    setIsCastSuggesting(true)
+    setCastHelper('AI가 인물 설정을 추천하는 중입니다.')
+    try {
+      const prompt = [
+        '성인 로맨스 창작 채팅에 추가할 가상 인물 설정을 JSON으로 추천해 주세요.',
+        '모든 인물은 성인입니다.',
+        selectedCharacter ? `현재 채팅의 기본 캐릭터: ${selectedCharacter.title}` : '',
+        selectedCharacter ? `현재 채팅 분위기: ${selectedCharacter.intro}` : '',
+        castMembers.length ? `이미 있는 인물: ${castMembers.map((member) => member.name).join(', ')}` : '',
+        `희망 이름: ${castName || '랜덤'}`,
+        '성인 간 합의된 로맨스 안에서 쓸 수 있는 관계 긴장감, 취향, 취미, 특징을 넣어 주세요.',
+        '형식: {"name":"이름","job":"직업","personality":"성격","traits":"특징","relationship":"현재 채팅 속 관계","hobbies":"취미","details":"추가 설정"}',
+        '모든 값은 한국어 문자열로 작성하고, JSON 외 문장은 쓰지 마세요.',
+      ].filter(Boolean).join('\n')
+      const text = await requestCastProfileSuggestion(prompt)
+      const parsed = parseJsonObject(text)
       setCastName(parsed.name || castName)
       setCastJob(parsed.job || '')
       setCastPersonality(parsed.personality || '')
@@ -1636,7 +1705,10 @@ function App() {
       setCastDetails(parsed.details || '')
       setCastHelper('추천 설정을 채웠습니다. 필요하면 수정한 뒤 추가하세요.')
     } catch {
-      setCastHelper('AI 추천에 실패했습니다. API 키와 모델 이름을 확인해 주세요.')
+      const modeName = apiMode === 'local' ? '로컬 모델' : apiMode === 'gemini' ? 'Gemini' : 'OpenRouter'
+      setCastHelper(`${modeName} 추천에 실패했습니다. 현재 채팅 연결 방식의 키, 모델 이름, 사용 한도를 확인해 주세요.`)
+    } finally {
+      setIsCastSuggesting(false)
     }
   }
 
@@ -1891,9 +1963,9 @@ function App() {
                 </span>
               </label>
               <div className="sheet-actions">
-                <button type="button" onClick={suggestCastProfile}>
+                <button type="button" onClick={suggestCastProfile} disabled={isCastSuggesting}>
                   <Icon name="sparkles" />
-                  AI로 추천
+                  {isCastSuggesting ? '추천 중' : 'AI로 추천'}
                 </button>
                 <button type="submit" disabled={!castName.trim()}>
                   인물 추가
