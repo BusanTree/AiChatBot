@@ -50,6 +50,11 @@ type PhotoPreview = {
   col?: number
 }
 
+type SuggestionPage = {
+  id: string
+  items: string[]
+}
+
 type CastMember = {
   id: string
   name: string
@@ -637,7 +642,7 @@ function MessageText({ text }: { text: string }) {
   )
 }
 
-type IconName = 'back' | 'chat' | 'heart' | 'heartFilled' | 'home' | 'image' | 'plus' | 'search' | 'send' | 'sparkles' | 'user' | 'x'
+type IconName = 'back' | 'chat' | 'chevronLeft' | 'chevronRight' | 'heart' | 'heartFilled' | 'home' | 'image' | 'plus' | 'search' | 'send' | 'sparkles' | 'user' | 'x'
 
 function Icon({ name }: { name: IconName }) {
   const common = {
@@ -658,6 +663,14 @@ function Icon({ name }: { name: IconName }) {
     return (
       <svg {...common}>
         <path d="M5 6.5A4.5 4.5 0 0 1 9.5 2h5A4.5 4.5 0 0 1 19 6.5v4A4.5 4.5 0 0 1 14.5 15H11l-4.5 4v-4.4A4.5 4.5 0 0 1 5 10.5z" />
+      </svg>
+    )
+  }
+
+  if (name === 'chevronLeft' || name === 'chevronRight') {
+    return (
+      <svg {...common}>
+        <path d={name === 'chevronLeft' ? 'm15 6-6 6 6 6' : 'm9 6 6 6-6 6'} />
       </svg>
     )
   }
@@ -830,6 +843,78 @@ function openAiText(data: unknown) {
   return (typed.message?.content || typed.choices?.[0]?.message?.content || '').trim()
 }
 
+function cleanSuggestionItem(value: string) {
+  const trimmed = value.trim()
+  const keepNarrationStars = trimmed.startsWith('*') && trimmed.endsWith('*')
+  return (keepNarrationStars ? trimmed : trimmed.replace(/^[-\d.)\s]+/, ''))
+    .replace(/^(추천|답변|프롬프트)\s*\d*\s*[:：]\s*/i, '')
+    .replace(/^["“”']|["“”']$/g, '')
+    .trim()
+}
+
+function parseSuggestions(raw: string) {
+  const jsonText = raw.match(/\[[\s\S]*\]/)?.[0]
+  if (jsonText) {
+    try {
+      const parsed = JSON.parse(jsonText) as unknown
+      if (Array.isArray(parsed)) {
+        return parsed.map((item) => cleanSuggestionItem(String(item))).filter(Boolean).slice(0, 3)
+      }
+    } catch {
+      // fall through to line parsing
+    }
+  }
+
+  return raw
+    .replace(/```[\s\S]*?```/g, '')
+    .split(/\n+/)
+    .map(cleanSuggestionItem)
+    .filter((item) => item && !/^\[|\]$/.test(item))
+    .slice(0, 3)
+}
+
+function fallbackSuggestions(character: Character, castMembers: CastMember[], nickname: string, pageIndex: number) {
+  const userName = displayNickname(nickname)
+  const botName = simpleCharacterName(character.title)
+  const extraCast = castMembers.find((member) => member.name !== character.title)
+  const secondSpeaker = extraCast || castMembers[0] || characterToCast(character)
+  const pages = [
+    [
+      `${botName}, 방금 말 진심이야?`,
+      `*${userName}(유저)이 잠시 말을 고르며 ${botName}(챗봇)을 바라본다.*`,
+      `조금만 더 솔직하게 말해줘.`,
+    ],
+    [
+      `@${secondSpeaker.name} 지금 분위기, 네가 먼저 바꿔봐.`,
+      `*${userName}(유저)이 한 걸음 가까이 다가서며 대답을 기다린다.*`,
+      `그 말, 나한테 어떤 의미로 한 거야?`,
+    ],
+    [
+      `도망치지 말고 여기서 끝까지 말해줘.`,
+      `*잠깐의 침묵 사이로 두 사람의 시선이 엇갈린다.*`,
+      `네가 원하는 다음 장면을 직접 말해줘.`,
+    ],
+  ]
+
+  return pages[pageIndex % pages.length]
+}
+
+function suggestionContext(messages: ChatMessage[], nickname: string) {
+  return messages
+    .filter((message) => message.sender !== 'system')
+    .slice(-10)
+    .map((message) => {
+      const speaker =
+        message.sender === 'assistant'
+          ? '챗봇'
+          : message.sender === 'cast'
+            ? `${message.speakerName || '추가 인물'}`
+            : displayNickname(nickname)
+      return `${speaker}: ${message.text}`
+    })
+    .join('\n')
+}
+
 function App() {
   const [tab, setTab] = useState<Tab>('home')
   const [rankTab, setRankTab] = useState(rankTabs[0])
@@ -870,7 +955,11 @@ function App() {
   const [castDetails, setCastDetails] = useState('')
   const [castImage, setCastImage] = useState('')
   const [castHelper, setCastHelper] = useState('')
+  const [suggestionPages, setSuggestionPages] = useState<SuggestionPage[]>([])
+  const [activeSuggestionPage, setActiveSuggestionPage] = useState(0)
+  const [isSuggesting, setIsSuggesting] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
+  const suggestionTouchStart = useRef<number | null>(null)
 
   const visibleCharacters = useMemo(() => {
     const keyword = query.trim().toLowerCase()
@@ -892,6 +981,22 @@ function App() {
   }, [castByChat, selectedCharacter])
   const draftSpeaker = useMemo(() => parseSpeakerDraft(draft, castMembers), [castMembers, draft])
   const mentionStarted = draft.trimStart().startsWith('@')
+  const currentMessageFingerprint = selectedCharacter
+    ? `${selectedCharacter.id}-${currentMessages.length}-${currentMessages[currentMessages.length - 1]?.id || 'empty'}`
+    : 'none'
+  const baseSuggestionPage = useMemo<SuggestionPage | null>(() => {
+    if (!selectedCharacter) return null
+    return {
+      id: `${currentMessageFingerprint}-fallback`,
+      items: fallbackSuggestions(selectedCharacter, castMembers, nickname, 0),
+    }
+  }, [castMembers, currentMessageFingerprint, nickname, selectedCharacter])
+  const scopedSuggestionPages = useMemo(() => {
+    const scoped = suggestionPages.filter((page) => page.id.startsWith(currentMessageFingerprint))
+    return scoped.length > 0 ? scoped : baseSuggestionPage ? [baseSuggestionPage] : []
+  }, [baseSuggestionPage, currentMessageFingerprint, suggestionPages])
+  const normalizedActiveSuggestionPage = Math.min(activeSuggestionPage, Math.max(scopedSuggestionPages.length - 1, 0))
+  const activeSuggestions = scopedSuggestionPages[normalizedActiveSuggestionPage]?.items || []
   const chattedCharacters = characters.filter((character) => sessions[character.id]?.some((message) => message.sender === 'user' || message.sender === 'cast'))
 
   useEffect(() => {
@@ -1114,6 +1219,133 @@ function App() {
     }
   }
 
+  function applySuggestion(text: string) {
+    setDraft(text)
+    window.setTimeout(() => inputRef.current?.focus(), 0)
+  }
+
+  async function requestSuggestionBatch(pageIndex: number) {
+    if (!selectedCharacter) return []
+    const existing = scopedSuggestionPages.flatMap((page) => page.items).join('\n')
+    const castNames = castMembers.map((member) => `@${member.name}`).join(', ')
+    const prompt = [
+      '현재 성인 로맨스 채팅 맥락을 보고 사용자가 다음에 입력할 만한 추천 프롬프트 3개를 만들어 주세요.',
+      '추천은 사용자가 그대로 누르면 입력창에 들어갈 문장입니다.',
+      '대사형, *상황 묘사*형, @이름으로 다른 인물의 말을 대신 쓰는 형식을 섞어도 됩니다.',
+      '각 추천은 한국어로 55자 이내, JSON 배열만 출력하세요.',
+      `사용자 닉네임: ${displayNickname(nickname)}`,
+      `기본 캐릭터: ${selectedCharacter.title}`,
+      `사용 가능한 @인물: ${castNames}`,
+      existing ? `이미 보여준 추천은 다시 쓰지 마세요:\n${existing}` : '',
+      `최근 대화:\n${suggestionContext(currentMessages, nickname)}`,
+      `이번 추천 묶음 번호: ${pageIndex + 1}`,
+    ].filter(Boolean).join('\n\n')
+
+    if (apiMode === 'local') {
+      const response = await fetch('/ollama/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: activeModel,
+          stream: false,
+          options: { temperature: 0.92, top_p: 0.95 },
+          messages: [
+            { role: 'system', content: '추천 문장 3개만 JSON 배열로 출력하세요. 설명은 쓰지 마세요.' },
+            { role: 'user', content: prompt },
+          ],
+        }),
+      })
+      if (!response.ok) throw new Error('추천 응답 오류')
+      return parseSuggestions(openAiText(await response.json()))
+    }
+
+    if (apiMode === 'openrouter') {
+      if (!remoteApiKey.trim()) throw new Error('OpenRouter API 키가 없습니다.')
+      const response = await fetch(openRouterEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${remoteApiKey.trim()}`,
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'AI ChatBot',
+        },
+        body: JSON.stringify({
+          model: remoteModel,
+          temperature: 0.92,
+          top_p: 0.95,
+          messages: [
+            { role: 'system', content: '추천 문장 3개만 JSON 배열로 출력하세요. 설명은 쓰지 마세요.' },
+            { role: 'user', content: prompt },
+          ],
+        }),
+      })
+      if (!response.ok) throw new Error('추천 응답 오류')
+      return parseSuggestions(openAiText(await response.json()))
+    }
+
+    if (!geminiApiKey.trim()) throw new Error('Gemini API 키가 없습니다.')
+    const response = await fetch(geminiEndpoint(geminiModel), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiApiKey.trim() },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.92, topP: 0.95 },
+      }),
+    })
+    if (!response.ok) throw new Error('추천 응답 오류')
+    return parseSuggestions(geminiText(await response.json()))
+  }
+
+  async function addSuggestionPage() {
+    if (!selectedCharacter || isSuggesting) return
+    const pageIndex = scopedSuggestionPages.length
+    setIsSuggesting(true)
+
+    try {
+      const aiItems = await requestSuggestionBatch(pageIndex)
+      const items = aiItems.length >= 3 ? aiItems.slice(0, 3) : fallbackSuggestions(selectedCharacter, castMembers, nickname, pageIndex)
+      setSuggestionPages((current) => [
+        ...current.filter((page) => !page.id.startsWith(currentMessageFingerprint)),
+        ...scopedSuggestionPages,
+        { id: `${currentMessageFingerprint}-${pageIndex}`, items },
+      ])
+      setActiveSuggestionPage(pageIndex)
+    } catch {
+      setSuggestionPages((current) => [
+        ...current.filter((page) => !page.id.startsWith(currentMessageFingerprint)),
+        ...scopedSuggestionPages,
+        { id: `${currentMessageFingerprint}-${pageIndex}-fallback`, items: fallbackSuggestions(selectedCharacter, castMembers, nickname, pageIndex) },
+      ])
+      setActiveSuggestionPage(pageIndex)
+    } finally {
+      setIsSuggesting(false)
+    }
+  }
+
+  function showPreviousSuggestions() {
+    setActiveSuggestionPage(Math.max(0, normalizedActiveSuggestionPage - 1))
+  }
+
+  function showNextSuggestions() {
+    if (normalizedActiveSuggestionPage < scopedSuggestionPages.length - 1) {
+      setActiveSuggestionPage(normalizedActiveSuggestionPage + 1)
+      return
+    }
+    void addSuggestionPage()
+  }
+
+  function handleSuggestionTouchEnd(clientX: number) {
+    if (suggestionTouchStart.current === null) return
+    const delta = clientX - suggestionTouchStart.current
+    suggestionTouchStart.current = null
+    if (Math.abs(delta) < 42) return
+    if (delta > 0) {
+      showPreviousSuggestions()
+      return
+    }
+    showNextSuggestions()
+  }
+
   async function suggestCastProfile() {
     setCastHelper('AI가 인물 설정을 추천하는 중입니다.')
     try {
@@ -1283,13 +1515,37 @@ function App() {
           )}
         </section>
 
-        <div className="quick-replies">
-          {['*잠깐 시선을 피한다*', '조금 더 솔직하게 말해줘', `@${castMembers[0]?.name || selectedCharacter.title} `].map((reply) => (
-            <button key={reply} type="button" onClick={() => setDraft(reply)}>
-              {reply}
-            </button>
-          ))}
-        </div>
+        <section className="suggestion-panel" aria-label="추천 답변">
+          <div className="suggestion-header">
+            <span>
+              <Icon name="sparkles" />
+              추천 답변
+            </span>
+            <small>{normalizedActiveSuggestionPage + 1} / {Math.max(scopedSuggestionPages.length, 1)}</small>
+            <div>
+              <button type="button" onClick={showPreviousSuggestions} disabled={normalizedActiveSuggestionPage === 0} aria-label="이전 추천">
+                <Icon name="chevronLeft" />
+              </button>
+              <button type="button" onClick={showNextSuggestions} disabled={isSuggesting} aria-label="다음 추천">
+                <Icon name="chevronRight" />
+              </button>
+            </div>
+          </div>
+          <div
+            className="suggestion-cards"
+            onTouchStart={(event) => {
+              suggestionTouchStart.current = event.touches[0]?.clientX ?? null
+            }}
+            onTouchEnd={(event) => handleSuggestionTouchEnd(event.changedTouches[0]?.clientX ?? 0)}
+          >
+            {activeSuggestions.map((reply) => (
+              <button key={reply} type="button" onClick={() => applySuggestion(reply)}>
+                {reply}
+              </button>
+            ))}
+            {isSuggesting && <span className="suggestion-loading">새 추천을 만드는 중...</span>}
+          </div>
+        </section>
 
         <form className="mobile-composer" onSubmit={sendMessage}>
           <div className={`composer-box ${draftSpeaker.speaker ? 'speaking-as' : mentionStarted ? 'mentioning' : ''}`}>

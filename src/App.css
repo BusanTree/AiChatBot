@@ -787,6 +787,7 @@ img {
   display: grid;
   grid-template-rows: auto auto auto 1fr auto auto;
   height: 100svh;
+  background: linear-gradient(180deg, #111116 0%, #0d0d11 100%);
 }
 
 .detail-header {
@@ -798,7 +799,7 @@ img {
   min-height: 58px;
   padding: 8px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(15, 15, 19, 0.94);
+  background: rgba(13, 13, 17, 0.94);
   backdrop-filter: blur(18px);
 }
 
@@ -851,7 +852,9 @@ img {
   gap: 12px;
   padding: 14px 14px 13px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  background: #16171d;
+  background:
+    linear-gradient(135deg, rgba(255, 196, 106, 0.08), transparent 42%),
+    #15161c;
 }
 
 .profile-strip img {
@@ -921,8 +924,11 @@ img {
   flex-direction: column;
   gap: 10px;
   min-height: 0;
-  padding: 16px 14px 20px;
+  padding: 16px 14px 18px;
   overflow-y: auto;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 120px),
+    #0f1015;
 }
 
 .bubble {
@@ -1032,6 +1038,109 @@ img {
   font-size: 12px;
 }
 
+.suggestion-panel {
+  display: grid;
+  gap: 8px;
+  padding: 9px 10px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background:
+    linear-gradient(180deg, rgba(255, 196, 106, 0.06), transparent),
+    #121216;
+}
+
+.suggestion-header {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.suggestion-header span,
+.suggestion-header div {
+  display: inline-flex;
+  align-items: center;
+}
+
+.suggestion-header span {
+  gap: 6px;
+  color: #f2e4c7;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.suggestion-header span .ui-icon {
+  width: 15px;
+  height: 15px;
+  color: #ffc46a;
+}
+
+.suggestion-header small {
+  color: #8f94a1;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.suggestion-header div {
+  gap: 4px;
+}
+
+.suggestion-header button {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  background: #24252d;
+  color: #f1f2f8;
+}
+
+.suggestion-header button:disabled {
+  opacity: 0.35;
+}
+
+.suggestion-header button .ui-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.suggestion-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  min-height: 66px;
+}
+
+.suggestion-cards button,
+.suggestion-loading {
+  min-height: 66px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 13px;
+  background: #1d1e25;
+  color: #eef0f6;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.suggestion-cards button {
+  overflow: hidden;
+}
+
+.suggestion-cards button:hover {
+  border-color: rgba(255, 196, 106, 0.32);
+  background: #25222a;
+}
+
+.suggestion-loading {
+  grid-column: 1 / -1;
+  display: grid;
+  place-items: center;
+  color: #aeb3c0;
+  text-align: center;
+}
+
 .mobile-composer {
   display: grid;
   grid-template-columns: 1fr 66px;
@@ -1039,7 +1148,7 @@ img {
   gap: 8px;
   padding: 10px 10px 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
-  background: #121216;
+  background: #101116;
 }
 
 .composer-box {
@@ -1111,6 +1220,8 @@ img {
   resize: none;
   padding: 12px 13px;
   line-height: 1.35;
+  border-color: #343642;
+  background: #1a1b22;
 }
 
 .mobile-composer button {
